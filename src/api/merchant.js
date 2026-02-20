@@ -154,9 +154,9 @@ const merchantApi = {
     },
 
     // Stock
-    getStock: async () => {
+    getStock: async (params) => {
         try {
-            const response = await api.get('/merchants/stock');
+            const response = await api.get('/merchants/stock', { params });
             return response.data;
         } catch (error) {
             throw error.response?.data || error;

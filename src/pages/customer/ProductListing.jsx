@@ -195,9 +195,9 @@ const ProductListing = () => {
                                                     <p className="text-sm text-[#9f8170] font-medium leading-relaxed italic mt-4 mb-6">{product.description?.substring(0, 150)}...</p>
                                                 )}
                                                 <div className="flex items-center gap-3 pt-2">
-                                                    <span className="text-lg font-black text-primary">₹ {product.pricing?.base_price}</span>
-                                                    {product.pricing?.compare_at_price > product.pricing?.base_price && (
-                                                        <span className="text-xs font-bold text-gray-400 line-through italic">₹ {product.pricing.compare_at_price}</span>
+                                                    <span className="text-lg font-black text-primary">₹ {product.pricing?.min_price}</span>
+                                                    {product.pricing?.max_price > product.pricing?.min_price && (
+                                                        <span className="text-xs font-bold text-gray-400 line-through italic">₹ {product.pricing.max_price}</span>
                                                     )}
                                                 </div>
                                             </div>

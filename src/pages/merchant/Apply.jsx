@@ -13,7 +13,6 @@ const MerchantApply = () => {
 
     const [formData, setFormData] = useState({
         store_name: '',
-        store_slug: '',
         description: '',
         business_email: user?.email || '',
         business_phone: user?.phone || '',
@@ -81,15 +80,6 @@ const MerchantApply = () => {
             [name]: value
         }));
 
-        if (name === 'store_name') {
-            const slug = value.toLowerCase()
-                .replace(/[^a-z0-9]+/g, '-')
-                .replace(/^-+|-+$/g, '');
-            setFormData(prev => ({
-                ...prev,
-                store_slug: slug
-            }));
-        }
     };
 
     const handleSubmit = async (e) => {
@@ -217,17 +207,6 @@ const MerchantApply = () => {
                                                     required
                                                     className="text-lg font-medium"
                                                     icon={<Building size={18} />}
-                                                />
-                                                <Input
-                                                    label="Store Slug"
-                                                    name="store_slug"
-                                                    value={formData.store_slug}
-                                                    onChange={handleChange}
-                                                    placeholder="mahi-electronics"
-                                                    required
-                                                    readOnly
-                                                    className="bg-gray-50/50"
-                                                    helpText={`URL: vyapar.com/shop/${formData.store_slug || 'identifier'}`}
                                                 />
                                             </div>
 

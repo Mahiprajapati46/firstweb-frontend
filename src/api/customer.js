@@ -44,6 +44,16 @@ const customerApi = {
         }
     },
 
+    // Coupons
+    getCoupons: async () => {
+        try {
+            const response = await api.get('/customers/coupons');
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
     // Cart (Authenticated)
     getCart: async () => {
         try {
@@ -212,6 +222,25 @@ const customerApi = {
                 amount,
                 bank_details: bankDetails
             });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    // Order Actions
+    cancelOrder: async (orderId, { refund_to_card = false } = {}) => {
+        try {
+            const response = await api.post(`/customers/orders/${orderId}/cancel`, { refund_to_card });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    requestReturn: async (orderId, { reason, refund_to_card = false }) => {
+        try {
+            const response = await api.post(`/customers/orders/${orderId}/return`, { reason, refund_to_card });
             return response.data;
         } catch (error) {
             throw error.response?.data || error;

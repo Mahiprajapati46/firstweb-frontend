@@ -22,6 +22,7 @@ import merchantApi from '../../api/merchant';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { toast } from 'react-hot-toast';
+import ChangeRequestModal from '../../components/merchant/ChangeRequestModal';
 
 const Variants = () => {
     const { id } = useParams(); // Product ID
@@ -42,6 +43,9 @@ const Variants = () => {
     });
     const [selectedImages, setSelectedImages] = useState([]);
     const [imagePreviews, setImagePreviews] = useState([]);
+    const [showChangeModal, setShowChangeModal] = useState(false);
+    const [selectedVariant, setSelectedVariant] = useState(null);
+    const [showAdvanced, setShowAdvanced] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -88,6 +92,7 @@ const Variants = () => {
         }
         setSelectedImages([]);
         setShowForm(true);
+        setShowAdvanced(!!variant && !!variant.sku); // Show if editing and SKU exists
     };
 
     const handleAttributeChange = (key, value) => {
@@ -204,28 +209,35 @@ const Variants = () => {
                     </div>
 
                     <form onSubmit={handleSaveVariant} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="relative">
-                            <Input
-                                label="SKU (Unique)"
-                                placeholder="UNQ-ITEM-001"
-                                value={variantForm.sku}
-                                onChange={(e) => setVariantForm({ ...variantForm, sku: e.target.value.toUpperCase() })}
-                                required
-                                disabled={editingVariant && ['APPROVED', 'PENDING'].includes(product?.status)}
-                                className={editingVariant && ['APPROVED', 'PENDING'].includes(product?.status) ? 'pr-10' : ''}
-                            />
-                            {editingVariant && ['APPROVED', 'PENDING'].includes(product?.status) && (
-                                <div className="absolute right-3 top-[38px] text-amber-500 pointer-events-none" title="Locked - Change Request Required">
-                                    <Lock size={16} />
-                                </div>
-                            )}
-                            {editingVariant && ['APPROVED', 'PENDING'].includes(product?.status) && (
-                                <p className="text-[10px] text-amber-600 font-black mt-1 uppercase tracking-tighter flex items-center gap-1">
-                                    <AlertCircle size={10} />
-                                    SKUs are locked. Request change in Hub.
-                                </p>
-                            )}
+                        <div className="md:col-span-2 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setShowAdvanced(!showAdvanced)}
+                                className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary transition-colors flex items-center gap-1"
+                            >
+                                {showAdvanced ? 'Hide Advanced Settings' : 'Show Advanced Settings'}
+                                <Layers size={14} />
+                            </button>
                         </div>
+
+                        {showAdvanced && (
+                            <div className="relative md:col-span-2 bg-slate-50/50 p-6 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-top-2">
+                                <Input
+                                    label="SKU (Stock Keeping Unit)"
+                                    placeholder="Leave blank to auto-generate"
+                                    value={variantForm.sku}
+                                    onChange={(e) => setVariantForm({ ...variantForm, sku: e.target.value.toUpperCase() })}
+                                    disabled={editingVariant && ['APPROVED', 'PENDING'].includes(product?.status)}
+                                    className={editingVariant && ['APPROVED', 'PENDING'].includes(product?.status) ? 'pr-10 bg-white' : 'bg-white'}
+                                    helpText="Unique identifier for inventory tracking."
+                                />
+                                {editingVariant && ['APPROVED', 'PENDING'].includes(product?.status) && (
+                                    <div className="absolute right-8 top-[58px] text-amber-500 pointer-events-none" title="Locked - Change Request Required">
+                                        <Lock size={16} />
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         <Input
                             label="Price (INR)"
                             type="number"
@@ -401,7 +413,10 @@ const Variants = () => {
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         {product?.status === 'APPROVED' && (
                                             <button
-                                                onClick={() => navigate('/merchant/requests', { state: { variantId: v._id } })}
+                                                onClick={() => {
+                                                    setSelectedVariant(v);
+                                                    setShowChangeModal(true);
+                                                }}
                                                 className="p-2 text-primary hover:bg-slate-50 rounded-lg transition-all"
                                                 title="Request SKU Change"
                                             >
@@ -435,6 +450,19 @@ const Variants = () => {
                         ))
                     )}
                 </div>
+            )}
+            {/* Modal - Variant SKU Modification */}
+            {selectedVariant && (
+                <ChangeRequestModal
+                    isOpen={showChangeModal}
+                    onClose={() => {
+                        setShowChangeModal(false);
+                        setSelectedVariant(null);
+                    }}
+                    entityType="VARIANT"
+                    entityId={selectedVariant._id}
+                    currentData={selectedVariant}
+                />
             )}
         </div>
     );

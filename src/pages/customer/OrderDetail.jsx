@@ -9,35 +9,152 @@ import {
     Calendar,
     Receipt,
     ExternalLink,
-    ChevronRight
+    ChevronRight,
+    AlertCircle,
+    RotateCcw,
+    XCircle,
+    CheckCircle2
 } from 'lucide-react';
 import customerApi from '../../api/customer';
 import toast from 'react-hot-toast';
+
+// Simple Premium Modal Component
+const ReturnModal = ({ isOpen, onClose, onSubmit, loading }) => {
+    const [reason, setReason] = useState('');
+    const [refundToCard, setRefundToCard] = useState(false);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+            <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="bg-white rounded-[3rem] border border-[#e5e5d1] shadow-2xl p-12 max-w-md w-full relative z-10 space-y-8 animate-in fade-in zoom-in duration-300">
+                <div className="space-y-2">
+                    <h3 className="text-3xl font-black text-primary tracking-tighter italic serif">Initiate Return</h3>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Provide details for your request</p>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-[#c19a6b]">Reason for Return</label>
+                        <textarea
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            placeholder="Please tell us why you wish to return this curation..."
+                            className="w-full bg-[#fdfaf5] border border-[#e5e5d1]/50 rounded-2xl p-6 text-sm font-medium focus:outline-none focus:border-primary transition-colors min-h-[120px] resize-none"
+                        />
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-[#c19a6b]">Refund Preference</label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                onClick={() => setRefundToCard(false)}
+                                className={`p-4 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${!refundToCard ? 'bg-primary text-white border-primary' : 'bg-white text-[#9f8170] border-[#e5e5d1]/50'}`}
+                            >
+                                Wallet Credit
+                            </button>
+                            <button
+                                onClick={() => setRefundToCard(true)}
+                                className={`p-4 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${refundToCard ? 'bg-primary text-white border-primary' : 'bg-white text-[#9f8170] border-[#e5e5d1]/50'}`}
+                            >
+                                Original Card
+                            </button>
+                        </div>
+                        <p className="text-[8px] font-bold text-gray-400 italic">Note: Card refunds may take 5-10 business days. Wallet credits are instant upon approval.</p>
+                    </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#9f8170] hover:text-primary transition-colors"
+                    >
+                        Back
+                    </button>
+                    <button
+                        onClick={() => onSubmit({ reason, refundToCard })}
+                        disabled={loading || !reason.trim()}
+                        className="flex-[2] bg-primary text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:shadow-lg disabled:opacity-50 disabled:shadow-none transition-all"
+                    >
+                        {loading ? 'Processing...' : 'Submit Request'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const OrderDetail = () => {
     const { orderId } = useParams();
     const navigate = useNavigate();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [showReturnModal, setShowReturnModal] = useState(false);
 
     useEffect(() => {
         fetchOrderDetail();
     }, [orderId]);
 
-    const fetchOrderDetail = async () => {
+    const fetchOrderDetail = async (isSilent = false) => {
         try {
-            setLoading(true);
+            if (!isSilent) setLoading(true);
             const response = await customerApi.getOrderById(orderId);
             if (response.data) {
                 setOrder(response.data);
             }
         } catch (error) {
             console.error('Fetch Order Detail Error:', error);
-            toast.error('Failed to retrieve order details');
+            if (!isSilent) toast.error('Failed to retrieve order details');
         } finally {
-            setLoading(false);
+            if (!isSilent) setLoading(false);
         }
     };
+
+    const handleCancelOrder = async () => {
+        if (!window.confirm('Are you certain you wish to cancel this curation? This action is irreversible.')) return;
+
+        try {
+            setActionLoading(true);
+            const res = await customerApi.cancelOrder(orderId, { refund_to_card: false });
+            toast.success(res.message || 'Curation successfully cancelled');
+            fetchOrderDetail();
+        } catch (error) {
+            toast.error(error.message || 'Resolution failed');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleReturnSubmit = async ({ reason, refundToCard }) => {
+        try {
+            setActionLoading(true);
+            const res = await customerApi.requestReturn(orderId, { reason, refund_to_card: refundToCard });
+            toast.success(res.message || 'Return request submitted');
+            setShowReturnModal(false);
+            fetchOrderDetail();
+        } catch (error) {
+            toast.error(error.message || 'Return initiation failed');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // Polling for live updates
+    useEffect(() => {
+        const terminalStates = ['DELIVERED', 'CANCELLED', 'RETURNED', 'RETURN_REJECTED'];
+
+        if (!order || terminalStates.includes(order.status)) {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            fetchOrderDetail(true);
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
+    }, [order?.status]);
 
     if (loading) {
         return (
@@ -103,18 +220,59 @@ const OrderDetail = () => {
                                 </div>
                             </div>
 
-                            {/* Decorative Timeline */}
+                            {/* Status Timeline Placeholder */}
                             <div className="relative pt-4 px-2">
                                 <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-[#fdfaf5]"></div>
                                 <div className="flex justify-between relative">
-                                    {['Placed', 'Processing', 'Shipped', 'Delivered'].map((step, i) => (
-                                        <div key={i} className="flex flex-col items-center gap-3">
-                                            <div className={`w-3 h-3 rounded-full border-2 z-10 ${i === 0 ? 'bg-primary border-primary shadow-[0_0_10px_rgba(0,0,0,0.1)]' : 'bg-white border-[#e5e5d1]'}`}></div>
-                                            <span className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-primary' : 'text-gray-300'}`}>{step}</span>
-                                        </div>
-                                    ))}
+                                    {[
+                                        { label: 'Placed', matches: ['CREATED', 'CONFIRMED'] },
+                                        { label: 'Packed', matches: ['PACKED'] },
+                                        { label: 'Shipped', matches: ['SHIPPED', 'OUT_FOR_DELIVERY'] },
+                                        { label: 'Delivered', matches: ['DELIVERED'] }
+                                    ].map((step, i, arr) => {
+                                        const statuses = ['CREATED', 'CONFIRMED', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'];
+                                        const currentIdx = statuses.indexOf(status);
+
+                                        // Find the highest status index among the matches for this step
+                                        const stepIndices = step.matches.map(s => statuses.indexOf(s));
+                                        const minStepIdx = Math.min(...stepIndices);
+
+                                        const isActive = (status === 'CANCELLED' || status === 'RETURNED' || status === 'RETURN_REQUESTED' || status === 'RETURN_REJECTED')
+                                            ? false
+                                            : currentIdx >= minStepIdx;
+
+                                        return (
+                                            <div key={i} className="flex flex-col items-center gap-3">
+                                                <div className={`w-3 h-3 rounded-full border-2 z-10 transition-all duration-1000 ${isActive ? 'bg-primary border-primary shadow-[0_0_10px_rgba(193,154,107,0.3)]' : 'bg-white border-[#e5e5d1]'}`}></div>
+                                                <span className={`text-[8px] font-black uppercase tracking-widest transition-colors duration-1000 ${isActive ? 'text-primary' : 'text-gray-300'}`}>{step.label}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
+
+                            {/* Status Specific Alerts */}
+                            {(status === 'CANCELLED' || status === 'RETURN_REQUESTED' || status === 'RETURNED' || status === 'RETURN_REJECTED') && (
+                                <div className="mt-10 p-6 bg-[#fdfaf5] border border-[#e5e5d1]/50 rounded-2xl flex items-start gap-4">
+                                    <div className={`mt-1 ${status === 'CANCELLED' ? 'text-red-400' : status === 'RETURN_REJECTED' ? 'text-red-400' : 'text-[#c19a6b]'}`}>
+                                        <AlertCircle size={18} />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-primary">
+                                            {status === 'CANCELLED' && 'Curation Revoked'}
+                                            {status === 'RETURN_REQUESTED' && 'Return in Review'}
+                                            {status === 'RETURNED' && 'Curation Returned'}
+                                            {status === 'RETURN_REJECTED' && 'Return Refused'}
+                                        </h4>
+                                        <p className="text-[10px] font-medium text-[#9f8170] leading-relaxed italic">
+                                            {status === 'CANCELLED' && 'This order has been successfully cancelled and refunded.'}
+                                            {status === 'RETURN_REQUESTED' && `Your request for "${order.return_reason}" is being evaluated by the artisans.`}
+                                            {status === 'RETURNED' && 'The curation has been returned and refunded to your account.'}
+                                            {status === 'RETURN_REJECTED' && `Reason: ${order.return_rejection_reason || 'Does not meet return criteria.'}`}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Order Items */}
@@ -225,9 +383,57 @@ const OrderDetail = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Customer Actions */}
+                        <div className="space-y-6">
+                            {(['CREATED', 'CONFIRMED'].includes(status)) && (
+                                <button
+                                    onClick={handleCancelOrder}
+                                    disabled={actionLoading}
+                                    className="w-full bg-white p-8 rounded-[2rem] border border-red-100/50 flex items-center justify-between group hover:bg-red-50/30 transition-all duration-500"
+                                >
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-400 border border-red-100/50 group-hover:scale-110 transition-transform">
+                                            <XCircle size={20} />
+                                        </div>
+                                        <div className="text-left">
+                                            <h4 className="text-sm font-black text-primary uppercase tracking-widest">Revoke Curation</h4>
+                                            <p className="text-[10px] font-medium text-[#9f8170] italic">Cancel this order and receive an instant refund</p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight size={16} className="text-red-200 group-hover:translate-x-1 transition-transform" />
+                                </button>
+                            )}
+
+                            {(status === 'DELIVERED') && (
+                                <button
+                                    onClick={() => setShowReturnModal(true)}
+                                    disabled={actionLoading}
+                                    className="w-full bg-white p-8 rounded-[2rem] border border-[#e5e5d1]/50 flex items-center justify-between group hover:bg-[#fdfaf5] transition-all duration-500"
+                                >
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-12 h-12 bg-[#fdfaf5] rounded-2xl flex items-center justify-center text-[#c19a6b] border border-[#e5e5d1]/50 group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                                            <RotateCcw size={20} />
+                                        </div>
+                                        <div className="text-left">
+                                            <h4 className="text-sm font-black text-primary uppercase tracking-widest">Initiate Return</h4>
+                                            <p className="text-[10px] font-medium text-[#9f8170] italic">Not satisfied? Return within the 7-day window</p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight size={16} className="text-[#e5e5d1] group-hover:translate-x-1 transition-transform" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <ReturnModal
+                isOpen={showReturnModal}
+                onClose={() => setShowReturnModal(false)}
+                onSubmit={handleReturnSubmit}
+                loading={actionLoading}
+            />
         </div>
     );
 };

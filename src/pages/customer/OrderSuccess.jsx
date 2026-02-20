@@ -27,22 +27,30 @@ const OrderSuccess = () => {
             const sessionId = searchParams.get('session_id');
 
             if (orderId && sessionId) {
+                console.log('[Debug] Verifying payment for Order:', orderId, 'Session:', sessionId);
+                console.log('[Debug] Auth token:', localStorage.getItem('token') ? 'Found' : 'Missing');
                 try {
-                    // State already set to true if params exist, but let's be explicit
                     setVerifying(true);
                     const response = await customerApi.verifyPayment(orderId, sessionId);
+                    console.log('[Debug] Verification response:', response);
+
                     if (response.success) {
                         setOrder(response.data);
                         toast.success('Payment verified successfully!');
                     } else {
-                        setError('We couldn\'t verify your payment. Please contact support.');
+                        const msg = response.message || 'Verification failed on server.';
+                        setError(msg);
+                        console.error('[Debug] Verification failed:', msg);
                     }
                 } catch (err) {
-                    setError('Payment verification failed. Please check your order history.');
-                    console.error('Verification error:', err);
+                    const errorMsg = err.message || 'Network error or server unreachable.';
+                    setError(`Payment verification failed: ${errorMsg}`);
+                    console.error('[Debug] Verification catch error:', err);
                 } finally {
                     setVerifying(false);
                 }
+            } else {
+                console.warn('[Debug] Missing orderId or sessionId in URL');
             }
         };
 
@@ -111,20 +119,31 @@ const OrderSuccess = () => {
                         <h3 className="text-3xl font-black text-primary tracking-tight tabular-nums">#{order.order_number || order.order_id?.slice(-8).toUpperCase()}</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-8 text-left border-y border-[#e5e5d1]/30 py-10">
+                    {/* Payment Breakdown */}
+                    <div className="space-y-6 border-y border-[#e5e5d1]/30 py-10 text-left">
+                        <h4 className="text-xl font-black text-primary tracking-tight italic serif">Payment Details</h4>
                         <div className="space-y-4">
-                            <div className="flex items-center gap-3 text-[#c19a6b]">
-                                <Calendar size={16} />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Date</span>
+                            <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-[#9f8170]">
+                                <span>Subtotal</span>
+                                <span className="text-primary tabular-nums">₹ {order.pricing?.subtotal || 0}</span>
                             </div>
-                            <p className="text-sm font-bold text-primary italic">{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3 text-[#c19a6b]">
-                                <Truck size={16} />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Shipping</span>
+                            <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-[#9f8170]">
+                                <span>Shipping</span>
+                                <span className="text-emerald-500 italic">Free</span>
                             </div>
-                            <p className="text-sm font-bold text-primary italic">Preparing for Dispatch</p>
+                            {(order.pricing?.discount > 0) && (
+                                <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-emerald-500">
+                                    <span className="flex items-center gap-2">
+                                        Discount
+                                        {order.pricing.coupon_code && <span className="bg-emerald-50 px-2 py-0.5 rounded text-[8px] border border-emerald-100">{order.pricing.coupon_code}</span>}
+                                    </span>
+                                    <span className="tabular-nums">- ₹ {order.pricing.discount}</span>
+                                </div>
+                            )}
+                            <div className="flex items-center justify-between text-sm font-black uppercase tracking-widest text-primary pt-4 border-t border-[#e5e5d1]/30">
+                                <span>Total Paid</span>
+                                <span className="text-2xl tracking-tighter tabular-nums">₹ {order.pricing?.total || 0}</span>
+                            </div>
                         </div>
                     </div>
 

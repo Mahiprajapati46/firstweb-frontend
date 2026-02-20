@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
     MapPin,
@@ -33,6 +33,7 @@ const Checkout = () => {
     const [applyingCoupon, setApplyingCoupon] = useState(false);
     const [useWallet, setUseWallet] = useState(false);
     const [processingOrder, setProcessingOrder] = useState(false);
+    const isSubmitting = useRef(false);
     const [isAddAddressOpen, setIsAddAddressOpen] = useState(false);
     const [newAddress, setNewAddress] = useState({
         full_name: '',
@@ -46,13 +47,17 @@ const Checkout = () => {
     });
     const [submittingAddress, setSubmittingAddress] = useState(false);
 
-    // Get variantIds from navigation state
+    // Get variantIds and couponCode from navigation state
     const variantIds = location.state?.variantIds || [];
+    const passedCouponCode = location.state?.couponCode || '';
 
     useEffect(() => {
         if (!user) {
             navigate('/login', { state: { from: '/checkout' } });
             return;
+        }
+        if (passedCouponCode) {
+            setCouponCode(passedCouponCode);
         }
         fetchData();
     }, [user, navigate]);
@@ -62,7 +67,7 @@ const Checkout = () => {
             setLoading(true);
             const [addrRes, previewRes] = await Promise.all([
                 customerApi.getAddresses(),
-                customerApi.checkoutPreview(undefined, variantIds)
+                customerApi.checkoutPreview(passedCouponCode || undefined, variantIds)
             ]);
 
             if (addrRes.data) setAddresses(addrRes.data);
@@ -136,13 +141,20 @@ const Checkout = () => {
     };
 
     const handlePlaceOrder = async () => {
+        if (isSubmitting.current) {
+            console.log('[Checkout] Blocked repeat submission');
+            return;
+        }
+
         if (!selectedAddress) {
             toast.error('Please select a shipping address');
             return;
         }
 
         try {
+            isSubmitting.current = true;
             setProcessingOrder(true);
+            console.log('[Checkout] Initiating order creation');
             const orderData = {
                 shipping_address: {
                     name: selectedAddress.full_name,
@@ -184,6 +196,7 @@ const Checkout = () => {
         } catch (error) {
             toast.error(error.message || 'Failed to place order');
         } finally {
+            isSubmitting.current = false;
             setProcessingOrder(false);
         }
     };
@@ -464,7 +477,7 @@ const Checkout = () => {
 
                             <div className="flex flex-col gap-3 pt-6 border-t border-[#e5e5d1]/30">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs font-black uppercase tracking-widest text-primary">Total Payable</span>
+                                    <span className="text-xs font-black uppercase tracking-widest text-primary">Final Amount Payable</span>
                                     <span className="text-4xl font-black text-primary tracking-tighter tabular-nums italic">
                                         ₹ {(useWallet
                                             ? Math.max(0, (preview?.summary?.total || 0) - (preview?.summary?.wallet_balance || 0))
@@ -473,15 +486,20 @@ const Checkout = () => {
                                 </div>
 
                                 {useWallet && (preview?.summary?.wallet_balance || 0) >= (preview?.summary?.total || 0) ? (
-                                    <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100/50">
-                                        <p className="text-[8px] font-black uppercase tracking-widest text-emerald-600 text-center italic">Fully covered by your wallet balance</p>
+                                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-center gap-3">
+                                        <CheckCircle2 size={16} className="text-emerald-500" />
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600 italic">Fully covered by your wallet balance</p>
                                     </div>
                                 ) : useWallet && (preview?.summary?.wallet_balance || 0) > 0 ? (
-                                    <div className="p-3 bg-[#c19a6b10] rounded-xl border border-[#c19a6b20]">
-                                        <p className="text-[8px] font-black uppercase tracking-widest text-[#c19a6b] text-center italic font-bold">Partial wallet use + Secure Stripe payment</p>
+                                    <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-center justify-center gap-3">
+                                        <CreditCard size={16} className="text-amber-500" />
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-[#c19a6b] italic font-bold">Partial wallet use + Secure Stripe payment</p>
                                     </div>
                                 ) : (
-                                    <p className="text-[8px] font-black uppercase tracking-widest text-[#9f8170] text-right italic pt-1">Pay via Secure Gateway</p>
+                                    <div className="flex items-center justify-end gap-2 text-[8px] font-black uppercase tracking-widest text-gray-400 italic pt-1">
+                                        <ShieldCheck size={12} className="text-primary" />
+                                        <span>Secure Checkout via Stripe</span>
+                                    </div>
                                 )}
                             </div>
 

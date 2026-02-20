@@ -16,6 +16,7 @@ import adminApi from '../../api/admin';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { toast } from 'react-hot-toast';
+import ChangeRequestModal from '../../components/merchant/ChangeRequestModal';
 
 const ProductForm = () => {
     const { id } = useParams();
@@ -26,6 +27,7 @@ const ProductForm = () => {
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(isEdit);
     const [productStatus, setProductStatus] = useState('DRAFT');
+    const [showChangeModal, setShowChangeModal] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -138,6 +140,16 @@ const ProductForm = () => {
 
     return (
         <div className="p-8 max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Change Request Modal */}
+            <ChangeRequestModal
+                isOpen={showChangeModal}
+                onClose={() => setShowChangeModal(false)}
+                entityType="PRODUCT"
+                entityId={id}
+                currentData={formData}
+                categories={categories}
+            />
+
             {/* Header */}
             <div className="flex items-center gap-4">
                 <button
@@ -170,22 +182,23 @@ const ProductForm = () => {
                         </div>
                         <p className="text-xs text-amber-700 font-medium mt-1 leading-relaxed">
                             High-level fields (Title, Description, Categories) are locked while the product is <span className="font-bold underline text-amber-900">{productStatus.toLowerCase()}</span>.
-                            Changes to these core attributes must be requested via the <span className="font-bold">Requests Hub</span>.
+                            Changes to these core attributes must be requested and approved by the administrator.
                         </p>
                         <div className="mt-4 flex gap-3">
                             <button
                                 type="button"
-                                onClick={() => navigate('/merchant/requests', { state: { productId: id, entityType: 'product' } })}
-                                className="px-4 py-2 bg-amber-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-black transition-all shadow-md active:scale-95"
+                                onClick={() => setShowChangeModal(true)}
+                                className="px-5 py-2.5 bg-amber-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-black transition-all shadow-lg shadow-amber-900/20 active:scale-95 flex items-center gap-2"
                             >
-                                Submit Change Request
+                                <Clock size={14} />
+                                Request Modification
                             </button>
                             <button
                                 type="button"
                                 onClick={() => navigate('/merchant/requests')}
-                                className="px-4 py-2 bg-white border border-amber-200 text-amber-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-amber-100 transition-all active:scale-95"
+                                className="px-5 py-2.5 bg-white border border-amber-200 text-amber-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-amber-100 transition-all active:scale-95"
                             >
-                                View Requests Hub
+                                View Request Status
                             </button>
                         </div>
                     </div>

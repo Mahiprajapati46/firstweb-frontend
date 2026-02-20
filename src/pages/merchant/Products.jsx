@@ -22,6 +22,7 @@ import merchantApi from '../../api/merchant';
 import Button from '../../components/ui/Button';
 import { toast } from 'react-hot-toast';
 import { Copy } from 'lucide-react';
+import ChangeRequestModal from '../../components/merchant/ChangeRequestModal';
 
 const STATUS_CHIPS = {
     DRAFT: { label: 'Draft', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: Clock },
@@ -39,6 +40,9 @@ const Products = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [stats, setStats] = useState({ ALL: 0 });
+    const [categories, setCategories] = useState([]);
+    const [showChangeModal, setShowChangeModal] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
 
     useEffect(() => {
         setPage(1); // Reset to first page when filter changes
@@ -61,6 +65,12 @@ const Products = () => {
             setProducts(response.data || []);
             setTotalPages(response.pagination?.pages || 1);
             setStats(response.stats || { ALL: 0 });
+
+            // Also fetch categories if not already loaded
+            if (categories.length === 0) {
+                const catResponse = await merchantApi.getCategories();
+                setCategories(catResponse.data || []);
+            }
         } catch (error) {
             toast.error('Failed to load products');
         } finally {
@@ -308,9 +318,12 @@ const Products = () => {
 
                                                 {product.status === 'APPROVED' && (
                                                     <button
-                                                        onClick={() => navigate('/merchant/requests', { state: { productId: product._id } })}
+                                                        onClick={() => {
+                                                            setSelectedProduct(product);
+                                                            setShowChangeModal(true);
+                                                        }}
                                                         className="p-2 text-primary hover:bg-primary/5 rounded-lg transition-all"
-                                                        title="Create Change Request"
+                                                        title="Request Modification"
                                                     >
                                                         <Clock size={18} />
                                                     </button>
@@ -410,6 +423,20 @@ const Products = () => {
                         Next
                     </Button>
                 </div>
+            )}
+            {/* Modal - Product Modification */}
+            {selectedProduct && (
+                <ChangeRequestModal
+                    isOpen={showChangeModal}
+                    onClose={() => {
+                        setShowChangeModal(false);
+                        setSelectedProduct(null);
+                    }}
+                    entityType="PRODUCT"
+                    entityId={selectedProduct._id}
+                    currentData={selectedProduct}
+                    categories={categories}
+                />
             )}
         </div>
     );

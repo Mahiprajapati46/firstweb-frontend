@@ -131,7 +131,7 @@ const Wallet = () => {
                                     <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Available Balance</span>
                                 </div>
                                 <div className="space-y-2">
-                                    <h2 className="text-5xl font-black tracking-tighter tabular-nums italic">₹ {balance.toLocaleString()}</h2>
+                                    <h2 className="text-5xl font-black tracking-tighter tabular-nums italic text-white">₹ {balance.toLocaleString()}</h2>
                                     <p className="text-[10px] font-black uppercase tracking-widest opacity-40">INR Wallet</p>
                                 </div>
                                 <div className="pt-8 flex gap-4">
