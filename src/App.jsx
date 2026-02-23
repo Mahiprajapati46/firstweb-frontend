@@ -6,6 +6,7 @@ import MerchantLayout from './layouts/MerchantLayout';
 import GuestLayout from './layouts/GuestLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ErrorBoundary from './components/ui/ErrorBoundary';
+import ScrollToTop from './components/ui/ScrollToTop';
 import { Toaster } from 'react-hot-toast';
 
 // Real Pages
@@ -42,6 +43,7 @@ import AdminUserDetail from './pages/admin/UserDetail';
 import AdminCoupons from './pages/admin/Coupons';
 import AdminSettings from './pages/admin/Settings';
 import AdminAuditLogs from './pages/admin/AuditLogs';
+import AdminTransactions from './pages/admin/Transactions';
 
 // Customer Pages
 import CustomerLayout from './layouts/CustomerLayout';
@@ -56,11 +58,18 @@ import CustomerOrders from './pages/customer/Orders';
 import CustomerOrderDetail from './pages/customer/OrderDetail';
 import CustomerWallet from './pages/customer/Wallet';
 import CustomerTopUpSuccess from './pages/customer/TopUpSuccess';
+import CustomerAbout from './pages/customer/About';
+import CustomerPrivacy from './pages/customer/Privacy';
+import CustomerTerms from './pages/customer/Terms';
+import CustomerContact from './pages/customer/Contact';
+import CustomerHelpCenter from './pages/customer/HelpCenter';
+import CustomerReturns from './pages/customer/Returns';
 
 function App() {
     return (
         <ErrorBoundary>
             <AuthProvider>
+                <ScrollToTop />
                 <Routes>
                     {/* Auth Routes */}
                     <Route path="/login" element={<LoginPage />} />
@@ -72,6 +81,12 @@ function App() {
                     <Route path="/" element={<CustomerLayout><CustomerHome /></CustomerLayout>} />
                     <Route path="/products" element={<CustomerLayout><CustomerProductListing /></CustomerLayout>} />
                     <Route path="/products/:slug" element={<CustomerLayout><CustomerProductDetail /></CustomerLayout>} />
+                    <Route path="/about" element={<CustomerLayout><CustomerAbout /></CustomerLayout>} />
+                    <Route path="/privacy" element={<CustomerLayout><CustomerPrivacy /></CustomerLayout>} />
+                    <Route path="/terms" element={<CustomerLayout><CustomerTerms /></CustomerLayout>} />
+                    <Route path="/contact" element={<CustomerLayout><CustomerContact /></CustomerLayout>} />
+                    <Route path="/help-center" element={<CustomerLayout><CustomerHelpCenter /></CustomerLayout>} />
+                    <Route path="/returns" element={<CustomerLayout><CustomerReturns /></CustomerLayout>} />
 
                     <Route
                         path="/cart"
@@ -162,6 +177,7 @@ function App() {
                                         <Route path="coupons" element={<AdminCoupons />} />
                                         <Route path="settings" element={<AdminSettings />} />
                                         <Route path="audit-logs" element={<AdminAuditLogs />} />
+                                        <Route path="transactions" element={<AdminTransactions />} />
                                         <Route path="*" element={<Navigate to="dashboard" replace />} />
                                     </Routes>
                                 </AdminLayout>

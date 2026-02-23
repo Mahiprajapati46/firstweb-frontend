@@ -13,12 +13,75 @@ import {
     AlertCircle,
     RotateCcw,
     XCircle,
-    CheckCircle2
+    CheckCircle2,
+    ShoppingBag,
+    ShieldCheck
 } from 'lucide-react';
 import customerApi from '../../api/customer';
 import toast from 'react-hot-toast';
 
 // Simple Premium Modal Component
+const CancelModal = ({ isOpen, onClose, onSubmit, loading, stripePortion }) => {
+    const [refundToCard, setRefundToCard] = useState(false);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose}></div>
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full relative z-10 overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-gray-900">Cancel Order</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <XCircle size={20} />
+                    </button>
+                </div>
+
+                <div className="p-6 space-y-6">
+                    <p className="text-sm text-gray-600">Are you sure you want to cancel this order? This action cannot be undone.</p>
+
+                    {stripePortion > 0 && (
+                        <div className="space-y-3">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Refund Preference (for ₹{stripePortion.toLocaleString()})</label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => setRefundToCard(false)}
+                                    className={`p-3 rounded-lg border text-xs font-bold transition-all ${!refundToCard ? 'bg-[#24b47e] text-white border-[#24b47e]' : 'bg-white text-gray-600 border-gray-200'}`}
+                                >
+                                    Wallet (Instant)
+                                </button>
+                                <button
+                                    onClick={() => setRefundToCard(true)}
+                                    className={`p-3 rounded-lg border text-xs font-bold transition-all ${refundToCard ? 'bg-[#24b47e] text-white border-[#24b47e]' : 'bg-white text-gray-600 border-gray-200'}`}
+                                >
+                                    Card (5-7 Days)
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-gray-400 italic">Note: Any portion paid via wallet will be refunded to your wallet instantly.</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-6 bg-gray-50 flex gap-3">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 py-3 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                        Keep Order
+                    </button>
+                    <button
+                        onClick={() => onSubmit({ refundToCard })}
+                        disabled={loading}
+                        className="flex-[2] bg-red-500 text-white py-3 rounded-xl text-sm font-bold hover:bg-red-600 transition-all"
+                    >
+                        {loading ? 'Processing...' : 'Confirm Cancellation'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const ReturnModal = ({ isOpen, onClose, onSubmit, loading }) => {
     const [reason, setReason] = useState('');
     const [refundToCard, setRefundToCard] = useState(false);
@@ -27,57 +90,58 @@ const ReturnModal = ({ isOpen, onClose, onSubmit, loading }) => {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
-            <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={onClose}></div>
-            <div className="bg-white rounded-[3rem] border border-[#e5e5d1] shadow-2xl p-12 max-w-md w-full relative z-10 space-y-8 animate-in fade-in zoom-in duration-300">
-                <div className="space-y-2">
-                    <h3 className="text-3xl font-black text-primary tracking-tighter italic serif">Initiate Return</h3>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Provide details for your request</p>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose}></div>
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full relative z-10 overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-gray-900">Return Items</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <XCircle size={20} />
+                    </button>
                 </div>
 
-                <div className="space-y-6">
-                    <div className="space-y-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-[#c19a6b]">Reason for Return</label>
+                <div className="p-6 space-y-6">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reason for return</label>
                         <textarea
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
-                            placeholder="Please tell us why you wish to return this curation..."
-                            className="w-full bg-[#fdfaf5] border border-[#e5e5d1]/50 rounded-2xl p-6 text-sm font-medium focus:outline-none focus:border-primary transition-colors min-h-[120px] resize-none"
+                            placeholder="Please explain why you want to return these items..."
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm focus:outline-none focus:border-[#24b47e] transition-colors min-h-[100px] resize-none"
                         />
                     </div>
 
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-[#c19a6b]">Refund Preference</label>
-                        <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Refund Method</label>
+                        <div className="grid grid-cols-2 gap-3">
                             <button
                                 onClick={() => setRefundToCard(false)}
-                                className={`p-4 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${!refundToCard ? 'bg-primary text-white border-primary' : 'bg-white text-[#9f8170] border-[#e5e5d1]/50'}`}
+                                className={`p-3 rounded-lg border text-xs font-bold transition-all ${!refundToCard ? 'bg-[#24b47e] text-white border-[#24b47e]' : 'bg-white text-gray-600 border-gray-200'}`}
                             >
-                                Wallet Credit
+                                Wallet
                             </button>
                             <button
                                 onClick={() => setRefundToCard(true)}
-                                className={`p-4 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${refundToCard ? 'bg-primary text-white border-primary' : 'bg-white text-[#9f8170] border-[#e5e5d1]/50'}`}
+                                className={`p-3 rounded-lg border text-xs font-bold transition-all ${refundToCard ? 'bg-[#24b47e] text-white border-[#24b47e]' : 'bg-white text-gray-600 border-gray-200'}`}
                             >
                                 Original Card
                             </button>
                         </div>
-                        <p className="text-[8px] font-bold text-gray-400 italic">Note: Card refunds may take 5-10 business days. Wallet credits are instant upon approval.</p>
                     </div>
                 </div>
 
-                <div className="flex gap-4 pt-4">
+                <div className="p-6 bg-gray-50 flex gap-3">
                     <button
                         onClick={onClose}
-                        className="flex-1 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#9f8170] hover:text-primary transition-colors"
+                        className="flex-1 py-3 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
                     >
-                        Back
+                        Cancel
                     </button>
                     <button
                         onClick={() => onSubmit({ reason, refundToCard })}
                         disabled={loading || !reason.trim()}
-                        className="flex-[2] bg-primary text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:shadow-lg disabled:opacity-50 disabled:shadow-none transition-all"
+                        className="flex-[2] bg-[#24b47e] text-white py-3 rounded-xl text-sm font-bold hover:shadow-lg disabled:opacity-50 transition-all"
                     >
-                        {loading ? 'Processing...' : 'Submit Request'}
+                        {loading ? 'Submitting...' : 'Confirm Return'}
                     </button>
                 </div>
             </div>
@@ -92,6 +156,7 @@ const OrderDetail = () => {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [showReturnModal, setShowReturnModal] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
 
     useEffect(() => {
         fetchOrderDetail();
@@ -112,16 +177,29 @@ const OrderDetail = () => {
         }
     };
 
-    const handleCancelOrder = async () => {
-        if (!window.confirm('Are you certain you wish to cancel this curation? This action is irreversible.')) return;
+    const handleCancelOrder = () => {
+        const walletPortion = order?.pricing?.amount_paid_via_wallet || 0;
+        const total = order?.pricing?.total || 0;
+        const stripePortion = total - walletPortion;
 
+        if (stripePortion > 0) {
+            setShowCancelModal(true);
+        } else {
+            if (window.confirm('Are you certain you wish to cancel this order? It will be refunded to your wallet instantly.')) {
+                executeCancellation({ refundToCard: false });
+            }
+        }
+    };
+
+    const executeCancellation = async ({ refundToCard }) => {
         try {
             setActionLoading(true);
-            const res = await customerApi.cancelOrder(orderId, { refund_to_card: false });
-            toast.success(res.message || 'Curation successfully cancelled');
+            const res = await customerApi.cancelOrder(orderId, { refund_to_card: refundToCard });
+            toast.success(res.message || 'Order successfully cancelled');
+            setShowCancelModal(false);
             fetchOrderDetail();
         } catch (error) {
-            toast.error(error.message || 'Resolution failed');
+            toast.error(error.message || 'Cancellation failed');
         } finally {
             setActionLoading(false);
         }
@@ -185,249 +263,264 @@ const OrderDetail = () => {
         payment = {},
         order_number = 'N/A',
         createdAt,
-        status
+        status,
+        sub_orders = []
     } = order;
 
+    // Professional Green Palette (Meesho/Myntra style)
+    const statusGreen = '#24b47e';
+
     return (
-        <div className="bg-[#fdfaf5] min-h-screen pb-32 pt-12">
-            <div className="container-custom max-w-5xl mx-auto px-6">
-                {/* Header Navigation */}
-                <div className="flex items-center justify-between mb-16">
+        <div className="bg-[#f2f4f7] min-h-screen pb-20">
+            {/* Minimal Sticky Header */}
+            <div className="bg-white border-b border-gray-200 sticky top-0 z-10 py-4 px-6">
+                <div className="max-w-6xl mx-auto flex items-center justify-between">
                     <button
                         onClick={() => navigate('/orders')}
-                        className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#c19a6b] hover:text-primary transition-colors group"
+                        className="flex items-center gap-2 text-gray-600 hover:text-black transition-colors"
                     >
-                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Back to Vault
+                        <ArrowLeft size={20} />
+                        <span className="text-sm font-bold">Back</span>
                     </button>
                     <div className="text-right">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#c19a6b]">Curation Reference</p>
-                        <h1 className="text-4xl font-black text-primary tracking-tighter tabular-nums">#{order_number}</h1>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Order #{order_number}</p>
+                        <p className="text-xs font-medium text-gray-500">{new Date(createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                     </div>
                 </div>
+            </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-                    {/* Main Content: Items & Status */}
-                    <div className="lg:col-span-2 space-y-12">
-                        {/* Status Timeline Placeholder */}
-                        <div className="bg-white p-10 rounded-[3rem] border border-[#e5e5d1]/50 shadow-sm relative overflow-hidden group">
-                            <div className="flex items-center justify-between mb-8">
-                                <div className="space-y-1">
-                                    <h3 className="text-xl font-black text-primary tracking-tight italic">Curation Lifecycle</h3>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Status: {status}</p>
-                                </div>
-                                <div className="w-12 h-12 bg-[#fdfaf5] rounded-2xl flex items-center justify-center text-[#c19a6b] border border-[#e5e5d1]/50 group-hover:bg-primary group-hover:text-white transition-all duration-500">
-                                    <Package size={20} />
-                                </div>
-                            </div>
+            <div className="max-w-6xl mx-auto px-4 mt-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                            {/* Status Timeline Placeholder */}
-                            <div className="relative pt-4 px-2">
-                                <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-[#fdfaf5]"></div>
-                                <div className="flex justify-between relative">
-                                    {[
-                                        { label: 'Placed', matches: ['CREATED', 'CONFIRMED'] },
-                                        { label: 'Packed', matches: ['PACKED'] },
-                                        { label: 'Shipped', matches: ['SHIPPED', 'OUT_FOR_DELIVERY'] },
-                                        { label: 'Delivered', matches: ['DELIVERED'] }
-                                    ].map((step, i, arr) => {
-                                        const statuses = ['CREATED', 'CONFIRMED', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'];
-                                        const currentIdx = statuses.indexOf(status);
+                    {/* LEFT COLUMN: Tracking & Items */}
+                    <div className="lg:col-span-2 space-y-6">
 
-                                        // Find the highest status index among the matches for this step
-                                        const stepIndices = step.matches.map(s => statuses.indexOf(s));
-                                        const minStepIdx = Math.min(...stepIndices);
+                        {/* 📈 Vertical Live Tracking */}
+                        <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
+                            <h3 className="text-lg font-bold text-gray-900 mb-8">Order Status</h3>
 
-                                        const isActive = (status === 'CANCELLED' || status === 'RETURNED' || status === 'RETURN_REQUESTED' || status === 'RETURN_REJECTED')
-                                            ? false
-                                            : currentIdx >= minStepIdx;
+                            <div className="space-y-0 relative">
+                                {[
+                                    { label: 'Order Placed', desc: 'We have received your order', icon: CheckCircle2, statuses: ['CREATED', 'CONFIRMED', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'] },
+                                    { label: 'Order Packed', desc: 'Item is ready for shipping', icon: Package, statuses: ['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'] },
+                                    { label: 'Shipped', desc: 'In transit to your location', icon: Truck, statuses: ['SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'] },
+                                    { label: 'Out for Delivery', desc: 'Arriving today', icon: MapPin, statuses: ['OUT_FOR_DELIVERY', 'DELIVERED'] },
+                                    { label: 'Delivered', desc: 'Handed over to customer', icon: ShoppingBag, statuses: ['DELIVERED'] }
+                                ].map((step, i, arr) => {
+                                    const isReached = step.statuses.includes(status);
+                                    const isLastReached = i < arr.length - 1 && arr[i + 1].statuses.includes(status);
 
-                                        return (
-                                            <div key={i} className="flex flex-col items-center gap-3">
-                                                <div className={`w-3 h-3 rounded-full border-2 z-10 transition-all duration-1000 ${isActive ? 'bg-primary border-primary shadow-[0_0_10px_rgba(193,154,107,0.3)]' : 'bg-white border-[#e5e5d1]'}`}></div>
-                                                <span className={`text-[8px] font-black uppercase tracking-widest transition-colors duration-1000 ${isActive ? 'text-primary' : 'text-gray-300'}`}>{step.label}</span>
+                                    return (
+                                        <div key={i} className="flex gap-4">
+                                            <div className="flex flex-col items-center">
+                                                <div
+                                                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isReached ? 'bg-[#24b47e] border-[#24b47e] text-white shadow-md' : 'bg-white border-gray-200 text-gray-300'
+                                                        }`}
+                                                >
+                                                    <step.icon size={18} />
+                                                </div>
+                                                {i < arr.length - 1 && (
+                                                    <div className={`w-0.5 h-12 transition-all duration-500 ${isLastReached ? 'bg-[#24b47e]' : 'bg-gray-100'}`}></div>
+                                                )}
                                             </div>
-                                        );
-                                    })}
-                                </div>
+                                            <div className="pt-1.5 pb-8">
+                                                <h4 className={`text-sm font-bold ${isReached ? 'text-gray-900' : 'text-gray-400'}`}>{step.label}</h4>
+                                                <p className={`text-xs mt-1 ${isReached ? 'text-gray-500' : 'text-gray-300'}`}>{step.desc}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
 
-                            {/* Status Specific Alerts */}
-                            {(status === 'CANCELLED' || status === 'RETURN_REQUESTED' || status === 'RETURNED' || status === 'RETURN_REJECTED') && (
-                                <div className="mt-10 p-6 bg-[#fdfaf5] border border-[#e5e5d1]/50 rounded-2xl flex items-start gap-4">
-                                    <div className={`mt-1 ${status === 'CANCELLED' ? 'text-red-400' : status === 'RETURN_REJECTED' ? 'text-red-400' : 'text-[#c19a6b]'}`}>
-                                        <AlertCircle size={18} />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <h4 className="text-xs font-black uppercase tracking-widest text-primary">
-                                            {status === 'CANCELLED' && 'Curation Revoked'}
-                                            {status === 'RETURN_REQUESTED' && 'Return in Review'}
-                                            {status === 'RETURNED' && 'Curation Returned'}
-                                            {status === 'RETURN_REJECTED' && 'Return Refused'}
+                            {/* Canceled/Returned Status/Refund Banner */}
+                            {['CANCELLED', 'RETURN_REQUESTED', 'RETURNED', 'RETURN_REJECTED'].includes(status) && (
+                                <div className={`mt-4 p-4 rounded-xl border flex items-start gap-4 ${status === 'CANCELLED' || status === 'RETURNED' ? 'bg-green-50 border-green-100' : 'bg-orange-50 border-orange-100'}`}>
+                                    {status === 'CANCELLED' || status === 'RETURNED' ? (
+                                        <ShieldCheck size={20} className="text-[#24b47e] shrink-0 mt-0.5" />
+                                    ) : (
+                                        <AlertCircle size={20} className="text-orange-500 shrink-0 mt-0.5" />
+                                    )}
+                                    <div className="flex-1">
+                                        <h4 className={`text-sm font-bold ${status === 'CANCELLED' || status === 'RETURNED' ? 'text-green-900' : 'text-orange-900'}`}>
+                                            {status === 'CANCELLED' ? 'Refund Processed' :
+                                                status === 'RETURNED' ? 'Return Completed' :
+                                                    status === 'RETURN_REQUESTED' ? 'Return Under Review' : 'Return Rejected'}
                                         </h4>
-                                        <p className="text-[10px] font-medium text-[#9f8170] leading-relaxed italic">
-                                            {status === 'CANCELLED' && 'This order has been successfully cancelled and refunded.'}
-                                            {status === 'RETURN_REQUESTED' && `Your request for "${order.return_reason}" is being evaluated by the artisans.`}
-                                            {status === 'RETURNED' && 'The curation has been returned and refunded to your account.'}
-                                            {status === 'RETURN_REJECTED' && `Reason: ${order.return_rejection_reason || 'Does not meet return criteria.'}`}
-                                        </p>
+
+                                        <div className="mt-2 space-y-2">
+                                            <p className={`text-xs ${status === 'CANCELLED' || status === 'RETURNED' ? 'text-green-700' : 'text-orange-700'}`}>
+                                                {order.refund_details?.message || (status === 'CANCELLED' ? 'Order has been cancelled and refund initiated.' : '')}
+                                                {status === 'RETURN_REQUESTED' && 'We are reviewing your return request. We will update you shortly.'}
+                                                {status === 'RETURN_REJECTED' && 'Your return request was not approved.'}
+                                            </p>
+
+                                            {(order.refund_details?.destination) && (
+                                                <div className="flex gap-6 mt-3 pt-3 border-t border-black/5">
+                                                    <div>
+                                                        <p className="text-[10px] uppercase font-bold text-gray-400">Refund To</p>
+                                                        <p className="text-xs font-bold text-gray-700">{order.refund_details.destination}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] uppercase font-bold text-gray-400">Timeline</p>
+                                                        <p className="text-xs font-bold text-gray-700">{order.refund_details.timeline}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Order Items */}
-                        <div className="space-y-6">
-                            <h3 className="text-2xl font-black text-primary tracking-tighter italic serif">Itemized Selection</h3>
-                            <div className="bg-white rounded-[3.5rem] border border-[#e5e5d1]/50 overflow-hidden divide-y divide-[#e5e5d1]/30 shadow-sm">
-                                {order.sub_orders?.map((sub) => (
+                        {/* 📦 Items List */}
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="p-6 border-b border-gray-50">
+                                <h3 className="text-sm font-bold text-gray-900">Products in this order</h3>
+                            </div>
+                            <div className="divide-y divide-gray-50">
+                                {sub_orders.map((sub) => (
                                     sub.items.map((item, i) => (
-                                        <div key={`${sub.merchant_id}-${i}`} className="p-10 flex flex-col md:flex-row md:items-center gap-8 group hover:bg-[#fdfaf5] transition-colors relative">
-                                            <div className="w-20 h-20 bg-[#fdfaf5] rounded-2xl overflow-hidden shrink-0 border border-[#e5e5d1]/30">
-                                                <img src={item.product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1999'} className="w-full h-full object-cover" />
+                                        <div key={`${sub.merchant_id}-${i}`} className="p-6 flex items-center gap-6 hover:bg-gray-50/50 transition-colors">
+                                            <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0">
+                                                <img
+                                                    src={item.product?.images?.[0]}
+                                                    className="w-full h-full object-cover"
+                                                    alt={item.product_name}
+                                                />
                                             </div>
-                                            <div className="flex-1 space-y-1">
-                                                <div className="flex items-center gap-3">
-                                                    <Link to={`/products/${item.product?.slug || '#'}`} className="text-lg font-black text-primary tracking-tight hover:text-[#c19a6b] transition-colors stretched-link">
-                                                        {item.product_name}
-                                                    </Link>
-                                                    <span className="px-3 py-1 bg-[#fdfaf5] border border-[#e5e5d1]/50 rounded-lg text-[8px] font-black uppercase tracking-widest text-[#9f8170] z-10 relative">{item.variant_label}</span>
-                                                </div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-[#9f8170] italic">Quantity: {item.quantity}</p>
-                                                <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest flex items-center gap-2">
-                                                    Managed by <span className="text-[#c19a6b]">Artisan #{item.merchant_id?.slice(-4).toUpperCase()}</span>
-                                                </p>
+                                            <div className="flex-1 min-w-0">
+                                                <Link to={`/products/${item.product?.slug || '#'}`} className="text-sm font-bold text-gray-900 hover:text-[#24b47e] transition-colors block truncate">
+                                                    {item.product_name}
+                                                </Link>
+                                                <p className="text-xs text-gray-500 mt-1">Size: {item.variant_label}</p>
+                                                <p className="text-xs text-gray-400 mt-0.5">Quantity: {item.quantity}</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-xl font-black text-primary tabular-nums tracking-tighter">₹ {item.price * item.quantity}</p>
-                                                <p className="text-[10px] font-bold text-gray-300 uppercase italic">₹ {item.price} ea.</p>
+                                                <p className="text-base font-bold text-gray-900">₹{(item.price * item.quantity).toLocaleString()}</p>
+                                                <p className="text-[10px] text-gray-400 font-medium">₹{item.price.toLocaleString()} each</p>
                                             </div>
                                         </div>
                                     ))
                                 ))}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Sidebar: Details & Value */}
-                    <div className="lg:col-span-1 space-y-10">
-                        {/* Summary Card */}
-                        <div className="bg-white p-10 rounded-[3rem] border border-[#e5e5d1]/50 shadow-xl space-y-10">
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#c19a6b]">Valuation</p>
-                                <h4 className="text-3xl font-black text-primary tracking-tighter italic">Curation Value</h4>
-                            </div>
-
-                            <div className="space-y-6 border-y border-[#e5e5d1]/30 py-10">
-                                <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-[#9f8170]">
-                                    <span>Subtotal</span>
-                                    <span className="text-primary tabular-nums">₹ {pricing?.subtotal || 0}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-[#9f8170]">
-                                    <span>Logistics</span>
-                                    <span className="text-emerald-500 italic">Complimentary</span>
-                                </div>
-                                {pricing?.discount > 0 && (
-                                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-emerald-500">
-                                        <span>Coupon Reward</span>
-                                        <span className="tabular-nums">- ₹ {pricing?.discount}</span>
-                                    </div>
-                                )}
-                                {pricing?.amount_paid_via_wallet > 0 && (
-                                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-[#c19a6b]">
-                                        <span>Wallet Credit</span>
-                                        <span className="tabular-nums">- ₹ {pricing?.amount_paid_via_wallet}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex items-center justify-between pt-4">
-                                <span className="text-xs font-black uppercase tracking-widest text-[#c19a6b]">Net Total</span>
-                                <span className="text-4xl font-black text-primary tracking-tighter tabular-nums italic">₹ {pricing?.total || 0}</span>
-                            </div>
-                        </div>
-
-                        {/* Info Sections */}
-                        <div className="space-y-6">
-                            <div className="p-8 bg-white rounded-[2.5rem] border border-[#e5e5d1]/50 space-y-6">
-                                <div className="flex items-center gap-4 text-primary">
-                                    <div className="w-10 h-10 bg-[#fdfaf5] rounded-xl flex items-center justify-center border border-[#e5e5d1]/50">
-                                        <MapPin size={18} />
-                                    </div>
-                                    <h4 className="text-xs font-black uppercase tracking-widest">Delivery Vault</h4>
-                                </div>
-                                <div className="space-y-2">
-                                    <p className="text-sm font-black text-primary">{shipping_address_snapshot.name}</p>
-                                    <p className="text-xs font-medium text-[#9f8170] leading-relaxed italic">
-                                        {shipping_address_snapshot.line1}, {shipping_address_snapshot.line2 && `${shipping_address_snapshot.line2}, `}
-                                        {shipping_address_snapshot.city}, {shipping_address_snapshot.state} - {shipping_address_snapshot.pincode}
-                                    </p>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pt-2">{shipping_address_snapshot.phone}</p>
-                                </div>
-                            </div>
-
-                            <div className="p-8 bg-white rounded-[2.5rem] border border-[#e5e5d1]/50 space-y-6">
-                                <div className="flex items-center gap-4 text-primary">
-                                    <div className="w-10 h-10 bg-[#fdfaf5] rounded-xl flex items-center justify-center border border-[#e5e5d1]/50">
-                                        <Receipt size={18} />
-                                    </div>
-                                    <h4 className="text-xs font-black uppercase tracking-widest">Resolution</h4>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-black text-primary uppercase tracking-widest">{payment?.provider || 'Secure Pay'}</p>
-                                        <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest italic">{payment?.status || 'Confirmed'}</p>
-                                    </div>
-                                    <button className="p-4 bg-[#fdfaf5] rounded-xl text-[#c19a6b] hover:bg-primary hover:text-white transition-all">
-                                        <ExternalLink size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Customer Actions */}
-                        <div className="space-y-6">
-                            {(['CREATED', 'CONFIRMED'].includes(status)) && (
+                        {/* 🛠️ Clear Customer Actions */}
+                        {(['CREATED', 'CONFIRMED'].includes(status)) && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <button
                                     onClick={handleCancelOrder}
                                     disabled={actionLoading}
-                                    className="w-full bg-white p-8 rounded-[2rem] border border-red-100/50 flex items-center justify-between group hover:bg-red-50/30 transition-all duration-500"
+                                    className="w-full flex items-center justify-center gap-2 bg-white border border-red-200 text-red-600 py-4 rounded-xl text-sm font-bold hover:bg-red-50 transition-all disabled:opacity-50"
                                 >
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-400 border border-red-100/50 group-hover:scale-110 transition-transform">
-                                            <XCircle size={20} />
-                                        </div>
-                                        <div className="text-left">
-                                            <h4 className="text-sm font-black text-primary uppercase tracking-widest">Revoke Curation</h4>
-                                            <p className="text-[10px] font-medium text-[#9f8170] italic">Cancel this order and receive an instant refund</p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight size={16} className="text-red-200 group-hover:translate-x-1 transition-transform" />
+                                    <XCircle size={18} />
+                                    Cancel Order
                                 </button>
-                            )}
+                                <button
+                                    onClick={() => navigate('/contact')}
+                                    className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-600 py-4 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all"
+                                >
+                                    <RotateCcw size={18} />
+                                    Help & Support
+                                </button>
+                            </div>
+                        )}
 
-                            {(status === 'DELIVERED') && (
+                        {(status === 'DELIVERED') && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <button
                                     onClick={() => setShowReturnModal(true)}
                                     disabled={actionLoading}
-                                    className="w-full bg-white p-8 rounded-[2rem] border border-[#e5e5d1]/50 flex items-center justify-between group hover:bg-[#fdfaf5] transition-all duration-500"
+                                    className="w-full flex items-center justify-center gap-2 bg-white border border-[#24b47e] text-[#24b47e] py-4 rounded-xl text-sm font-bold hover:bg-green-50 transition-all disabled:opacity-50"
                                 >
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-12 h-12 bg-[#fdfaf5] rounded-2xl flex items-center justify-center text-[#c19a6b] border border-[#e5e5d1]/50 group-hover:bg-primary group-hover:text-white transition-all duration-500">
-                                            <RotateCcw size={20} />
-                                        </div>
-                                        <div className="text-left">
-                                            <h4 className="text-sm font-black text-primary uppercase tracking-widest">Initiate Return</h4>
-                                            <p className="text-[10px] font-medium text-[#9f8170] italic">Not satisfied? Return within the 7-day window</p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight size={16} className="text-[#e5e5d1] group-hover:translate-x-1 transition-transform" />
+                                    <RotateCcw size={18} />
+                                    Return Items
                                 </button>
-                            )}
+                                <button
+                                    onClick={() => navigate('/contact')}
+                                    className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-600 py-4 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all"
+                                >
+                                    <RotateCcw size={18} />
+                                    Help & Support
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* RIGHT COLUMN: Summary & Details */}
+                    <div className="space-y-6">
+
+                        {/* 📦 Delivery & Payment Address */}
+                        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
+                            <div>
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Delivery Address</h4>
+                                <div className="space-y-1">
+                                    <p className="text-sm font-bold text-gray-900">{shipping_address_snapshot.name}</p>
+                                    <p className="text-xs text-gray-500 leading-relaxed">
+                                        {shipping_address_snapshot.line1}, {shipping_address_snapshot.line2 && `${shipping_address_snapshot.line2}, `}
+                                        {shipping_address_snapshot.city}, {shipping_address_snapshot.state} - {shipping_address_snapshot.pincode}
+                                    </p>
+                                    <p className="text-xs text-gray-500 pt-2 font-medium">📞 {shipping_address_snapshot.phone}</p>
+                                </div>
+                            </div>
+
+                            <hr className="border-gray-50" />
+
+                            <div>
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Payment Details</h4>
+                                <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl">
+                                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-[#24b47e] shadow-sm">
+                                        <CreditCard size={16} />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-gray-900">{payment?.provider || 'Secure Online Payment'}</p>
+                                        <p className="text-[10px] text-green-600 font-bold uppercase tracking-tight">Paid Successfully</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 💰 Order Summary */}
+                        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Total Summary</h4>
+                            <div className="space-y-3">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">Order Subtotal</span>
+                                    <span className="font-medium text-gray-900">₹{(pricing?.subtotal || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">Shipping</span>
+                                    <span className="text-[#24b47e] font-bold">Free</span>
+                                </div>
+                                {pricing?.discount > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-500">Discount</span>
+                                        <span className="text-red-500 font-medium">- ₹{pricing.discount.toLocaleString()}</span>
+                                    </div>
+                                )}
+                                {pricing?.amount_paid_via_wallet > 0 && (
+                                    <div className="flex justify-between text-sm pt-2 border-t border-gray-50">
+                                        <span className="text-gray-500 italic">Paid via Wallet</span>
+                                        <span className="font-medium text-[#24b47e]">- ₹{pricing.amount_paid_via_wallet.toLocaleString()}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-base font-bold pt-4 border-t border-gray-100">
+                                    <span className="text-gray-900">Final Total</span>
+                                    <span className="text-[#24b47e]">₹{(pricing?.total || 0).toLocaleString()}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <CancelModal
+                isOpen={showCancelModal}
+                onClose={() => setShowCancelModal(false)}
+                onSubmit={executeCancellation}
+                loading={actionLoading}
+                stripePortion={(order?.pricing?.total || 0) - (order?.pricing?.amount_paid_via_wallet || 0)}
+            />
             <ReturnModal
                 isOpen={showReturnModal}
                 onClose={() => setShowReturnModal(false)}

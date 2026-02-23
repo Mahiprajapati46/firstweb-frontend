@@ -110,7 +110,7 @@ const MerchantApply = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50/50">
+        <div className="min-h-screen bg-[#f8f9fa]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
                 <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
 
@@ -129,22 +129,22 @@ const MerchantApply = () => {
 
                         <div className="space-y-4">
                             <div className="flex gap-5 p-6 bg-white rounded-2xl border border-gray-100 shadow-sm group hover:border-accent transition-all duration-300">
-                                <div className="w-12 h-12 bg-accent/5 text-accent rounded-xl flex items-center justify-center shrink-0 group-hover:bg-accent group-hover:text-white transition-all">
-                                    <Store size={24} />
+                                <div className="w-10 h-10 bg-primary/5 text-primary rounded-xl flex items-center justify-center shrink-0 group-hover:bg-accent group-hover:text-white transition-all">
+                                    <Store size={20} />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-primary mb-1">Store Autonomy</h3>
-                                    <p className="text-sm text-gray-500 leading-relaxed">Dedicated storefront with complete catalog management and brand control.</p>
+                                <div className="space-y-1">
+                                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Store Autonomy</h3>
+                                    <p className="text-[11px] text-gray-400 font-medium leading-relaxed">Dedicated storefront with complete catalog management and brand control.</p>
                                 </div>
                             </div>
 
                             <div className="flex gap-5 p-6 bg-white rounded-2xl border border-gray-100 shadow-sm group hover:border-accent transition-all duration-300">
-                                <div className="w-12 h-12 bg-accent/5 text-accent rounded-xl flex items-center justify-center shrink-0 group-hover:bg-accent group-hover:text-white transition-all">
-                                    <ShoppingBag size={24} />
+                                <div className="w-10 h-10 bg-primary/5 text-primary rounded-xl flex items-center justify-center shrink-0 group-hover:bg-accent group-hover:text-white transition-all">
+                                    <ShoppingBag size={20} />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-primary mb-1">Global Logistics</h3>
-                                    <p className="text-sm text-gray-500 leading-relaxed">Integrated order pipelines, dynamic stock alerts, and multi-vendor fulfillment.</p>
+                                <div className="space-y-1">
+                                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Global Logistics</h3>
+                                    <p className="text-[11px] text-gray-400 font-medium leading-relaxed">Integrated order pipelines, dynamic stock alerts, and multi-vendor fulfillment.</p>
                                 </div>
                             </div>
                         </div>
@@ -195,19 +195,21 @@ const MerchantApply = () => {
                                 ) : (
                                     <form onSubmit={handleSubmit} className="space-y-10">
                                         {/* SECTION: STORE INFO */}
-                                        <div className="space-y-6">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-accent mb-4">Business Core</p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                <Input
-                                                    label="Store Name"
-                                                    name="store_name"
-                                                    value={formData.store_name}
-                                                    onChange={handleChange}
-                                                    placeholder="e.g. Mahi Electronics"
-                                                    required
-                                                    className="text-lg font-medium"
-                                                    icon={<Building size={18} />}
-                                                />
+                                        <div className="space-y-8">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-6">Business Core</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <Input
+                                                        label="Store Name"
+                                                        name="store_name"
+                                                        value={formData.store_name}
+                                                        onChange={handleChange}
+                                                        placeholder="e.g. Mahi Electronics"
+                                                        required
+                                                        className="text-lg font-medium"
+                                                        icon={<Building size={18} />}
+                                                    />
+                                                </div>
                                             </div>
 
                                             <div>
@@ -225,54 +227,62 @@ const MerchantApply = () => {
                                         </div>
 
                                         {/* SECTION: CONTACT INFO */}
-                                        <div className="space-y-6">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-accent mb-4">Operational Contacts</p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-8 pt-4">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-6">Operational Contacts</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <Input
                                                     label="Business Email"
+                                                    labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1"
                                                     name="business_email"
                                                     type="email"
                                                     value={formData.business_email}
                                                     onChange={handleChange}
                                                     placeholder="support@merchant.com"
+                                                    className="bg-gray-50 border-gray-100"
                                                 />
                                                 <Input
                                                     label="Business Phone"
+                                                    labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1"
                                                     name="business_phone"
                                                     value={formData.business_phone}
                                                     onChange={handleChange}
                                                     placeholder="+91 98765 43210"
+                                                    className="bg-gray-50 border-gray-100"
                                                 />
                                             </div>
                                         </div>
 
                                         {/* SECTION: ADDRESS */}
-                                        <div className="space-y-6">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-accent mb-4 flex items-center gap-2">
+                                        <div className="space-y-8 pt-4">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent mb-6 flex items-center gap-2">
                                                 <MapPin size={12} /> Business Address
                                             </p>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <Input
                                                     label="Address Line 1"
+                                                    labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1"
                                                     name="address.line1"
                                                     value={formData.address.line1}
                                                     onChange={handleChange}
                                                     placeholder="Office 123, MG Road"
                                                     required
+                                                    className="bg-gray-50 border-gray-100"
                                                 />
                                                 <Input
                                                     label="Address Line 2"
+                                                    labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1"
                                                     name="address.line2"
                                                     value={formData.address.line2}
                                                     onChange={handleChange}
                                                     placeholder="Landmark"
+                                                    className="bg-gray-50 border-gray-100"
                                                 />
                                             </div>
                                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                                <Input label="City" name="address.city" value={formData.address.city} onChange={handleChange} required />
-                                                <Input label="State" name="address.state" value={formData.address.state} onChange={handleChange} required />
-                                                <Input label="Pin Code" name="address.pincode" value={formData.address.pincode} onChange={handleChange} required />
-                                                <Input label="Country" name="address.country" value={formData.address.country} onChange={handleChange} required />
+                                                <Input label="City" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.city" value={formData.address.city} onChange={handleChange} required className="bg-gray-50 border-gray-100" />
+                                                <Input label="State" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.state" value={formData.address.state} onChange={handleChange} required className="bg-gray-50 border-gray-100" />
+                                                <Input label="Pin Code" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.pincode" value={formData.address.pincode} onChange={handleChange} required className="bg-gray-50 border-gray-100" />
+                                                <Input label="Country" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.country" value={formData.address.country} onChange={handleChange} required className="bg-gray-50 border-gray-100" />
                                             </div>
                                         </div>
 

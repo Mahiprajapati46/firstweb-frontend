@@ -40,13 +40,15 @@ const TopUpSuccess = () => {
 
     if (status === 'verifying') {
         return (
-            <div className="bg-[#fdfaf5] min-h-screen flex items-center justify-center p-6">
-                <div className="text-center space-y-8 animate-pulse">
-                    <div className="w-24 h-24 bg-primary/5 rounded-[2.5rem] flex items-center justify-center text-primary mx-auto mb-8">
-                        <Loader2 size={48} className="animate-spin" />
+            <div className="bg-[#f8f9fa] min-h-screen flex items-center justify-center p-6">
+                <div className="text-center space-y-6">
+                    <div className="w-20 h-20 bg-primary/5 rounded-3xl flex items-center justify-center text-primary mx-auto">
+                        <Loader2 size={32} className="animate-spin" />
                     </div>
-                    <h2 className="text-4xl font-black text-primary italic serif tracking-tighter">Securing Funds...</h2>
-                    <p className="text-[#9f8170] italic">Validating your transaction with the bank.</p>
+                    <div className="space-y-2">
+                        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Verifying Payment</h2>
+                        <p className="text-xs text-gray-400 font-medium">Please wait while we confirm your transaction.</p>
+                    </div>
                 </div>
             </div>
         );
@@ -54,17 +56,19 @@ const TopUpSuccess = () => {
 
     if (status === 'error') {
         return (
-            <div className="bg-[#fdfaf5] min-h-screen flex items-center justify-center p-6">
-                <div className="text-center space-y-8 max-w-md">
-                    <div className="w-24 h-24 bg-rose-50 rounded-[2.5rem] flex items-center justify-center text-rose-500 mx-auto mb-8">
-                        <AlertCircle size={48} className="opacity-20" />
+            <div className="bg-[#f8f9fa] min-h-screen flex items-center justify-center p-6">
+                <div className="text-center space-y-10 max-w-md">
+                    <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 mx-auto">
+                        <AlertCircle size={32} />
                     </div>
-                    <h2 className="text-4xl font-black text-primary italic serif tracking-tighter">Verification Failed</h2>
-                    <p className="text-[#9f8170] italic leading-relaxed">
-                        We couldn't confirm your top-up. If your account was debited, it will be credited automatically within 24 hours.
-                    </p>
-                    <div className="pt-8">
-                        <Link to="/wallet" className="inline-flex py-4 px-10 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-primary/30">Return to Wallet</Link>
+                    <div className="space-y-3">
+                        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Payment Verification Failed</h2>
+                        <p className="text-xs text-gray-500 font-medium leading-relaxed uppercase tracking-widest px-4">
+                            We couldn't confirm your deposit. If funds were debited, they will be auto-credited shortly.
+                        </p>
+                    </div>
+                    <div>
+                        <Link to="/wallet" className="inline-flex py-4 px-10 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">Return to Wallet</Link>
                     </div>
                 </div>
             </div>
@@ -72,45 +76,47 @@ const TopUpSuccess = () => {
     }
 
     return (
-        <div className="bg-[#fdfaf5] min-h-screen flex items-center justify-center p-6">
-            <div className="text-center space-y-12 max-w-xl">
+        <div className="bg-[#f8f9fa] min-h-screen flex items-center justify-center p-6">
+            <div className="text-center space-y-12 max-w-xl w-full">
                 <div className="space-y-6">
-                    <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center text-emerald-500 mx-auto shadow-2xl shadow-emerald-500/10 border border-emerald-100/50">
-                        <CheckCircle2 size={48} />
+                    <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center text-emerald-500 mx-auto border border-emerald-100/50">
+                        <CheckCircle2 size={32} />
                     </div>
-                    <div className="space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c19a6b]">Success</p>
-                        <h1 className="text-6xl font-black text-primary tracking-tighter italic serif">Funds Added<span className="text-[#c19a6b]">!</span></h1>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-[3rem] p-10 border border-[#e5e5d1]/50 shadow-2xl shadow-[#c19a6b05] space-y-6">
                     <div className="space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Amount Credited</p>
-                        <h3 className="text-4xl font-black text-primary tracking-tight tabular-nums">₹ {amount.toLocaleString()}</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Transaction Complete</p>
+                        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Funds Added Successfully</h1>
                     </div>
-                    <p className="text-xs font-medium text-[#9f8170] italic leading-relaxed px-8">
-                        Your digital wallet has been successfully credited. You can now use these funds for a seamless checkout experience.
-                    </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
+                <div className="bg-white rounded-[2.5rem] p-10 border border-gray-100 shadow-sm space-y-8">
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Total Credited</p>
+                        <h3 className="text-5xl font-black text-gray-900 tracking-tight tabular-nums">₹ {amount.toLocaleString()}</h3>
+                    </div>
+                    <div className="pt-6 border-t border-gray-50">
+                        <p className="text-xs font-medium text-gray-400 leading-relaxed px-4">
+                            Your wallet balance has been updated. You can now use these funds for purchases across the platform.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <Link
                         to="/wallet"
-                        className="w-full sm:w-auto px-10 py-5 bg-primary text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 group"
+                        className="w-full sm:w-auto px-10 py-4 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-secondary transition-all flex items-center justify-center gap-3 transition-transform hover:-translate-y-0.5"
                     >
-                        Go to Wallet <Wallet size={16} />
+                        View Wallet <Wallet size={14} />
                     </Link>
                     <Link
                         to="/products"
-                        className="w-full sm:w-auto px-10 py-5 border border-[#e5e5d1] rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-[#9f8170] hover:text-primary transition-all flex items-center justify-center gap-3 group"
+                        className="w-full sm:w-auto px-10 py-4 border border-gray-200 bg-white rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-all flex items-center justify-center gap-3 transition-transform hover:-translate-y-0.5"
                     >
-                        Continue Shopping <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        Browse Shop <ArrowRight size={14} />
                     </Link>
                 </div>
 
-                <p className="text-[9px] font-black uppercase tracking-widest text-[#c19a6b] opacity-40">
-                    Redirecting to wallet in a few seconds...
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-300">
+                    Auto-redirecting to wallet shortly...
                 </p>
             </div>
         </div>

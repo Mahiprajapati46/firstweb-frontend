@@ -12,7 +12,8 @@ import {
     Loader2,
     X,
     Building2,
-    CreditCard
+    CreditCard,
+    ShieldCheck
 } from 'lucide-react';
 import customerApi from '../../api/customer';
 import toast from 'react-hot-toast';
@@ -102,131 +103,131 @@ const Wallet = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#fdfaf5]">
-                <Loader2 size={32} className="animate-spin text-[#c19a6b]" />
+            <div className="min-h-screen flex items-center justify-center bg-[#f8f9fa]">
+                <Loader2 size={32} className="animate-spin text-primary" />
             </div>
         );
     }
 
     return (
-        <div className="bg-[#fdfaf5] min-h-screen pb-32 pt-12">
-            <div className="container-custom max-w-5xl mx-auto px-6">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
-                    <div className="space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c19a6b]">Your Assets</p>
-                        <h1 className="text-7xl font-black text-primary tracking-tighter italic serif">Digital Wallet</h1>
+        <div className="bg-[#f8f9fa] min-h-screen pb-24 pt-12">
+            <div className="max-w-6xl mx-auto px-4 md:px-6">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 px-2">
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Financial Overview</p>
+                        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Your Wallet</h1>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                    {/* Balance & Actions */}
-                    <div className="lg:col-span-1 space-y-8">
-                        <div className="bg-primary rounded-[3.5rem] p-10 text-white shadow-2xl shadow-primary/20 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24 blur-3xl group-hover:bg-white/10 transition-colors" />
-                            <div className="relative z-10 space-y-12">
-                                <div className="flex items-center justify-between">
-                                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
-                                        <WalletIcon size={24} className="text-white opacity-80" />
+                <div className="space-y-12">
+                    {/* Top Section: Dashboard Header (Full Width Balance) */}
+                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="p-8 md:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-10">
+                            <div className="space-y-4 flex-1">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-primary/5 rounded-xl flex items-center justify-center text-primary">
+                                        <WalletIcon size={20} />
                                     </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Available Balance</span>
+                                    <div className="space-y-0.5">
+                                        <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Available Balance</h2>
+                                        <p className="text-[10px] font-bold text-gray-400">Total funds ready for use</p>
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <h2 className="text-5xl font-black tracking-tighter tabular-nums italic text-white">₹ {balance.toLocaleString()}</h2>
-                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-40">INR Wallet</p>
+                                <div className="space-y-1">
+                                    <h3 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter tabular-nums leading-none">
+                                        ₹ {balance.toLocaleString()}
+                                    </h3>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">Wallet Active</span>
+                                    </div>
                                 </div>
-                                <div className="pt-8 flex gap-4">
-                                    <button
-                                        onClick={() => setShowTopUpModal(true)}
-                                        className="flex-1 py-4 bg-white text-primary rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#fdfaf5] transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Plus size={14} /> Top Up
-                                    </button>
-                                    <button
-                                        onClick={() => setShowWithdrawModal(true)}
-                                        className="flex-1 py-4 bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <ArrowUpRight size={14} /> Withdraw
-                                    </button>
-                                </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-3 lg:w-80">
+                                <button
+                                    onClick={() => setShowTopUpModal(true)}
+                                    className="flex-1 py-4 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-secondary transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Plus size={14} /> Add Money
+                                </button>
+                                <button
+                                    onClick={() => setShowWithdrawModal(true)}
+                                    className="flex-1 py-4 bg-white border border-gray-100 text-gray-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <ArrowUpRight size={14} /> Withdraw
+                                </button>
                             </div>
                         </div>
 
-                        {/* Summary Stats */}
-                        <div className="bg-white rounded-[2.5rem] p-8 border border-[#e5e5d1]/50 space-y-8">
-                            <div className="space-y-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-primary border-b border-[#e5e5d1]/30 pb-4">Wallet Summary</h3>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                                        <span className="text-[#9f8170]">Total Volume</span>
-                                        <span className="text-primary">₹ {transactions.reduce((acc, tx) => acc + Math.abs(tx.amount), 0).toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                                        <span className="text-[#9f8170]">Transactions</span>
-                                        <span className="text-primary">{transactions.length}</span>
-                                    </div>
-                                </div>
+                        {/* Quick Summary Bar */}
+                        <div className="bg-gray-50/50 border-t border-gray-50 px-8 py-5 flex flex-wrap gap-10">
+                            <div className="space-y-0.5">
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total Transactions</p>
+                                <p className="text-base font-bold text-gray-900">{transactions.length}</p>
                             </div>
-
-                            <div className="bg-[#fdfaf5]/80 rounded-2xl p-6 space-y-4 border border-[#c19a6b10]">
-                                <div className="flex items-center gap-2 text-primary">
-                                    <AlertCircle size={14} className="opacity-50" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest">Security & Trust</span>
+                            <div className="space-y-0.5">
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Volume Flow</p>
+                                <p className="text-base font-bold text-gray-900">₹{transactions.reduce((acc, tx) => acc + Math.abs(tx.amount), 0).toLocaleString()}</p>
+                            </div>
+                            <div className="flex-1 hidden md:block" />
+                            <div className="flex items-center gap-3 px-6 border-l border-gray-100">
+                                <ShieldCheck size={16} className="text-primary" />
+                                <div className="space-y-0.5">
+                                    <p className="text-[9px] font-black text-gray-900 uppercase tracking-widest">Protected Payouts</p>
+                                    <p className="text-[9px] font-medium text-gray-400">Funds are held in secure escrow</p>
                                 </div>
-                                <p className="text-[9px] font-medium text-[#9f8170] italic leading-relaxed">
-                                    Your funds are managed by our secure backend "Source of Truth". This prevents tampering and ensures every transaction is verified against the bank.
-                                </p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Transaction History */}
-                    <div className="lg:col-span-2 space-y-8">
-                        <div className="flex items-center justify-between mb-4">
+                    {/* Bottom Section: Full Width Activity */}
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between px-4">
                             <div className="flex items-center gap-3">
-                                <History size={18} className="text-[#c19a6b]" />
-                                <h2 className="text-xl font-black text-primary tracking-tight">Recent Activity</h2>
+                                <History size={20} className="text-gray-400" />
+                                <h2 className="text-xl font-bold text-gray-900 tracking-tight">Recent Activity</h2>
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-[3.5rem] border border-[#e5e5d1]/50 overflow-hidden shadow-2xl shadow-[#c19a6b05]">
+                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                             {transactions.length === 0 ? (
-                                <div className="p-20 text-center space-y-6">
-                                    <div className="w-16 h-16 bg-[#fdfaf5] rounded-[2rem] flex items-center justify-center text-[#c19a6b] mx-auto opacity-50">
-                                        <History size={24} />
+                                <div className="py-24 text-center space-y-6">
+                                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 mx-auto">
+                                        <History size={32} />
                                     </div>
-                                    <p className="text-xs font-black uppercase tracking-widest text-[#9f8170]">No transaction records found</p>
+                                    <div className="space-y-2">
+                                        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No Activity Records</p>
+                                        <p className="text-xs text-gray-300">New transactions will appear here after processing.</p>
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="divide-y divide-[#e5e5d1]/30">
+                                <div className="divide-y divide-gray-50">
                                     {transactions.map((tx) => (
-                                        <div key={tx.transaction_id} className="p-8 hover:bg-[#fdfaf5]/50 transition-colors group">
-                                            <div className="flex items-center justify-between gap-6">
+                                        <div key={tx.transaction_id} className="p-8 hover:bg-gray-50 transition-colors group">
+                                            <div className="flex items-center justify-between gap-8">
                                                 <div className="flex items-center gap-6">
-                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tx.amount > 0 ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'
-                                                        }`}>
-                                                        {tx.amount > 0 ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
+                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${tx.amount > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                        {tx.amount > 0 ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                                                     </div>
-                                                    <div className="space-y-1">
-                                                        <div className="flex items-center gap-3">
-                                                            <h4 className="text-sm font-black text-primary tracking-tight">{tx.description}</h4>
-                                                            <div className="status-badge flex items-center gap-1.5 px-2 py-0.5 bg-[#fdfaf5] rounded-full">
-                                                                {getStatusIcon(tx.status)}
-                                                                <span className="text-[8px] font-black uppercase tracking-widest text-[#9f8170]">{tx.status}</span>
-                                                            </div>
+                                                    <div className="space-y-1.5 focus-within:ring-0">
+                                                        <div className="flex flex-wrap items-center gap-3">
+                                                            <h4 className="text-base font-bold text-gray-900">{tx.description}</h4>
+                                                            <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${tx.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : tx.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+                                                                {tx.status}
+                                                            </span>
                                                         </div>
-                                                        <p className="text-[10px] font-medium text-[#9f8170] italic">
+                                                        <p className="text-[11px] font-medium text-gray-400">
                                                             {new Date(tx.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className={`text-lg font-black tracking-tighter tabular-nums italic ${tx.amount > 0 ? 'text-emerald-500' : 'text-primary'
-                                                        }`}>
-                                                        {tx.amount > 0 ? '+' : ''}₹ {Math.abs(tx.amount).toLocaleString()}
+                                                <div className="text-right space-y-1">
+                                                    <p className={`text-xl font-bold tabular-nums ${tx.amount > 0 ? 'text-emerald-600' : 'text-gray-900'}`}>
+                                                        {tx.amount > 0 ? '+' : ''}₹{Math.abs(tx.amount).toLocaleString()}
                                                     </p>
-                                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#c19a6b] opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        {tx.type}
-                                                    </p>
+                                                    <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest group-hover:text-primary transition-colors">{tx.type}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -238,41 +239,41 @@ const Wallet = () => {
                 </div>
             </div>
 
-            {/* Top Up Modal */}
+            {/* Modals - Standardized */}
             {showTopUpModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
-                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={() => setShowTopUpModal(false)} />
-                    <div className="bg-white w-full max-w-md rounded-[3rem] p-12 relative z-10 shadow-2xl animate-in zoom-in-95 duration-300">
-                        <button onClick={() => setShowTopUpModal(false)} className="absolute top-8 right-8 text-[#9f8170] hover:text-primary transition-colors">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setShowTopUpModal(false)} />
+                    <div className="bg-white w-full max-w-md rounded-2xl p-8 relative z-10 shadow-2xl animate-in zoom-in-95 duration-300">
+                        <button onClick={() => setShowTopUpModal(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
                             <X size={20} />
                         </button>
                         <div className="space-y-8">
-                            <div className="space-y-4">
-                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c19a6b]">Balance</p>
-                                <h2 className="text-4xl font-black text-primary tracking-tighter italic serif">Add Funds</h2>
+                            <div className="space-y-2">
+                                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Add Money</h2>
+                                <p className="text-xs text-gray-500 font-medium">Funds will be added instantly to your wallet.</p>
                             </div>
 
                             <div className="space-y-6">
-                                <div className="space-y-4">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Amount (INR)</label>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Amount (INR)</label>
                                     <div className="relative">
-                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-primary font-black serif italic text-xl">₹</span>
+                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">₹</span>
                                         <input
                                             type="number"
                                             value={topUpAmount}
                                             onChange={(e) => setTopUpAmount(e.target.value)}
                                             placeholder="0.00"
-                                            className="w-full pl-12 pr-6 py-6 bg-[#fdfaf5] border-none rounded-2xl text-xl font-black text-primary placeholder:text-[#c19a6b]/30 focus:ring-2 focus:ring-[#c19a6b]/20"
+                                            className="w-full pl-10 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-xl text-lg font-bold text-gray-900 placeholder:text-gray-300 focus:ring-2 focus:ring-primary/10 transition-all"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-3 gap-2">
                                     {[500, 1000, 5000].map(amt => (
                                         <button
                                             key={amt}
                                             onClick={() => setTopUpAmount(amt.toString())}
-                                            className="py-3 bg-[#fdfaf5] text-[10px] font-black uppercase tracking-widest text-[#9f8170] rounded-xl hover:bg-[#c19a6b] hover:text-white transition-all"
+                                            className="py-2.5 bg-gray-50 text-[10px] font-bold text-gray-500 rounded-lg hover:bg-primary hover:text-white transition-all border border-gray-100"
                                         >
                                             +₹{amt}
                                         </button>
@@ -282,9 +283,9 @@ const Wallet = () => {
                                 <button
                                     onClick={handleTopUp}
                                     disabled={processing}
-                                    className="w-full py-6 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all disabled:opacity-50 disabled:translate-y-0"
+                                    className="w-full py-4 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-secondary transition-all disabled:opacity-50"
                                 >
-                                    {processing ? 'Processing...' : 'Proceed to Payment'}
+                                    {processing ? 'Connecting Gateway...' : 'Continue to Payment'}
                                 </button>
                             </div>
                         </div>
@@ -294,79 +295,71 @@ const Wallet = () => {
 
             {/* Withdraw Modal */}
             {showWithdrawModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
-                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={() => setShowWithdrawModal(false)} />
-                    <div className="bg-white w-full max-w-2xl rounded-[3rem] p-12 relative z-10 shadow-2xl animate-in zoom-in-95 duration-300">
-                        <button onClick={() => setShowWithdrawModal(false)} className="absolute top-8 right-8 text-[#9f8170] hover:text-primary transition-colors">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setShowWithdrawModal(false)} />
+                    <div className="bg-white w-full max-w-lg rounded-2xl p-8 relative z-10 shadow-2xl animate-in zoom-in-95 duration-300">
+                        <button onClick={() => setShowWithdrawModal(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
                             <X size={20} />
                         </button>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                            <div className="space-y-8">
-                                <div className="space-y-4">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c19a6b]">Payout</p>
-                                    <h2 className="text-4xl font-black text-primary tracking-tighter italic serif">Withdraw</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Withdraw</h2>
+                                    <p className="text-xs text-gray-500 font-medium">To your primary bank account.</p>
                                 </div>
 
-                                <div className="space-y-6">
-                                    <div className="space-y-4">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Amount to Withdraw</label>
+                                <div className="space-y-4">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Amount</label>
                                         <div className="relative">
-                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-primary font-black serif italic text-xl">₹</span>
+                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">₹</span>
                                             <input
                                                 type="number"
                                                 value={withdrawAmount}
                                                 onChange={(e) => setWithdrawAmount(e.target.value)}
-                                                placeholder="0.00"
-                                                className="w-full pl-12 pr-6 py-6 bg-[#fdfaf5] border-none rounded-2xl text-xl font-black text-primary placeholder:text-[#c19a6b]/30 focus:ring-2 focus:ring-[#c19a6b]/20"
+                                                className="w-full pl-10 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-xl text-lg font-bold text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all"
                                             />
                                         </div>
-                                        <div className="flex justify-between px-2">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-[#9f8170]">Available: ₹{balance}</span>
-                                            <button onClick={() => setWithdrawAmount(balance.toString())} className="text-[9px] font-black uppercase tracking-widest text-[#c19a6b]">Max</button>
+                                        <div className="flex justify-between px-1">
+                                            <span className="text-[9px] font-bold text-gray-400 uppercase">Avail: ₹{balance}</span>
+                                            <button onClick={() => setWithdrawAmount(balance.toString())} className="text-[9px] font-bold text-primary uppercase">Withdraw All</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-8 pt-4 md:pt-14">
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-1 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black uppercase tracking-widest text-[#9f8170] ml-2">Account Number</label>
-                                            <input
-                                                type="text"
-                                                value={bankDetails.account_number}
-                                                onChange={(e) => setBankDetails({ ...bankDetails, account_number: e.target.value })}
-                                                className="w-full px-6 py-4 bg-[#fdfaf5] border-none rounded-xl text-xs font-bold text-primary focus:ring-2 focus:ring-[#c19a6b]/20"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black uppercase tracking-widest text-[#9f8170] ml-2">IFSC Code</label>
-                                            <input
-                                                type="text"
-                                                value={bankDetails.ifsc_code}
-                                                onChange={(e) => setBankDetails({ ...bankDetails, ifsc_code: e.target.value })}
-                                                className="w-full px-6 py-4 bg-[#fdfaf5] border-none rounded-xl text-xs font-bold text-primary focus:ring-2 focus:ring-[#c19a6b]/20"
-                                            />
-                                        </div>
+                            <div className="space-y-6 pt-2 md:pt-12">
+                                <div className="space-y-4">
+                                    <div className="space-y-3">
+                                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Bank Details</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Account Number"
+                                            value={bankDetails.account_number}
+                                            onChange={(e) => setBankDetails({ ...bankDetails, account_number: e.target.value })}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="IFSC Code"
+                                            value={bankDetails.ifsc_code}
+                                            onChange={(e) => setBankDetails({ ...bankDetails, ifsc_code: e.target.value })}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all"
+                                        />
                                     </div>
 
-                                    <div className="p-6 bg-amber-50 rounded-2xl space-y-3">
-                                        <div className="flex items-center gap-2 text-amber-600">
-                                            <Building2 size={14} />
-                                            <span className="text-[9px] font-black uppercase tracking-widest">Manual Verification</span>
-                                        </div>
-                                        <p className="text-[10px] font-medium text-amber-800 italic leading-relaxed">
-                                            Admin will manually verify these bank details. Ensure the IFSC and Account Number are exact to avoid delays.
+                                    <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                                        <p className="text-[10px] font-bold text-amber-700 leading-relaxed italic">
+                                            Payouts are manually audited and typically processed within 24-48 hours.
                                         </p>
                                     </div>
 
                                     <button
                                         onClick={handleWithdraw}
                                         disabled={processing || !withdrawAmount || Number(withdrawAmount) > balance}
-                                        className="w-full py-6 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all disabled:opacity-50 disabled:translate-y-0"
+                                        className="w-full py-4 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-secondary transition-all disabled:opacity-50"
                                     >
-                                        {processing ? 'Submitting...' : 'Submit Request'}
+                                        {processing ? 'Submitting Request...' : 'Send Payout Request'}
                                     </button>
                                 </div>
                             </div>

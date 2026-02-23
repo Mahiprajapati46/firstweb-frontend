@@ -66,6 +66,7 @@ const AdminLayout = ({ children }) => {
         { icon: Ticket, label: 'Coupons', path: '/admin/coupons' },
         { icon: HandCoins, label: 'Withdrawals', path: '/admin/withdrawals' },
         { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
+        { icon: History, label: 'Transactions', path: '/admin/transactions' },
         { icon: Settings, label: 'Settings', path: '/admin/settings' },
         { icon: History, label: 'Audit Logs', path: '/admin/audit-logs' },
     ];

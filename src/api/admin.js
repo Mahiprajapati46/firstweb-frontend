@@ -330,6 +330,36 @@ const adminApi = {
         } catch (error) {
             throw error.response?.data || error;
         }
+    },
+    getCommissionStats: async ({ page = 1, limit = 15 } = {}) => {
+        try {
+            const response = await api.get(`/admin/settings/commissions?page=${page}&limit=${limit}`);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+    getWalletSummary: async () => {
+        try {
+            const response = await api.get('/admin/wallets/summary');
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+    getAllTransactions: async (params = {}) => {
+        try {
+            const queryParams = new URLSearchParams();
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    queryParams.append(key, value);
+                }
+            });
+            const response = await api.get(`/admin/transactions?${queryParams.toString()}`);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
     }
 };
 

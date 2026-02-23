@@ -1,73 +1,115 @@
-import React from 'react';
-import { Copy, Ticket, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Check, Copy, Zap, Clock, ChevronRight, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const CouponCard = ({ coupon, onApply, isApplied }) => {
+    const [copied, setCopied] = useState(false);
+    const [timeLeft, setTimeLeft] = useState('');
+
     const isExpired = new Date(coupon.expiry_date) < new Date();
+    const isPercentage = coupon.discount_type === 'PERCENTAGE';
+
+    // Countdown timer
+    useEffect(() => {
+        if (isExpired) return;
+        const update = () => {
+            const diff = new Date(coupon.expiry_date) - new Date();
+            if (diff <= 0) { setTimeLeft('Expired'); return; }
+            const d = Math.floor(diff / 86400000);
+            const h = Math.floor((diff % 86400000) / 3600000);
+            if (d > 0) setTimeLeft(`${d}d ${h}h left`);
+            else {
+                const m = Math.floor((diff % 3600000) / 60000);
+                setTimeLeft(h > 0 ? `${h}h ${m}m left` : `${m}m left`);
+            }
+        };
+        update();
+        const interval = setInterval(update, 60000);
+        return () => clearInterval(interval);
+    }, [coupon.expiry_date, isExpired]);
 
     const handleCopy = (e) => {
         e.stopPropagation();
         navigator.clipboard.writeText(coupon.code);
-        toast.success("Coupon code copied!");
+        setCopied(true);
+        toast.success('Code copied!', { icon: '🎫' });
+        setTimeout(() => setCopied(false), 2000);
     };
 
+    // Usage progress
+    const usagePercent = coupon.usage_limit
+        ? Math.min(100, ((coupon.used_count || 0) / coupon.usage_limit) * 100)
+        : 0;
+    const usageRemaining = coupon.usage_limit
+        ? coupon.usage_limit - (coupon.used_count || 0)
+        : null;
+
     return (
-        <div className={`relative flex group ${isExpired ? 'opacity-60 grayscale' : ''}`}>
-            {/* Left Side (Main Info) */}
-            <div className={`flex-1 bg-white border border-r-0 border-[#e5e5d1] rounded-l-2xl p-5 flex flex-col justify-between min-h-[140px] relative overflow-hidden transition-all duration-300 ${isApplied ? 'bg-primary/5 border-primary/20' : ''}`}>
-                {/* Background Pattern */}
-                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                    <Ticket size={80} className="text-[#c19a6b]" />
-                </div>
-
-                <div className="space-y-1 relative z-10">
-                    <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${isApplied ? 'bg-primary text-white' : 'bg-[#fdfaf5] text-[#9f8170]'}`}>
-                            {coupon.discount_type === 'PERCENTAGE' ? `${coupon.discount_value}% OFF` : `₹${coupon.discount_value} OFF`}
+        <div className={`relative bg-white border rounded-2xl p-5 transition-all ${isExpired ? 'opacity-50 grayscale' : 'hover:border-primary/30 hover:shadow-md'}`}>
+            <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="bg-emerald-50 text-emerald-600 text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
+                            {isPercentage ? `${coupon.discount_value}% OFF` : `₹${coupon.discount_value} OFF`}
                         </span>
-                        {isApplied && <span className="text-[10px] font-bold text-primary flex items-center gap-1"><Check size={10} /> Applied</span>}
+                        {isApplied && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/5 px-2 py-1 rounded uppercase">
+                                <Check size={10} /> Applied
+                            </span>
+                        )}
                     </div>
-                    <h3 className="text-xl font-black text-primary tracking-tight">{coupon.code}</h3>
-                    <p className="text-xs text-gray-500 font-medium line-clamp-2">{coupon.description}</p>
+
+                    <h3 className="text-xl font-black text-gray-900 mb-1">{coupon.code}</h3>
+                    {coupon.description && (
+                        <p className="text-xs text-gray-500 mb-4 line-clamp-2 leading-relaxed">
+                            {coupon.description}
+                        </p>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        {coupon.min_order_amount > 0 && (
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+                                Min order: ₹{coupon.min_order_amount}
+                            </span>
+                        )}
+                        <span className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight ${timeLeft.includes('m') && !timeLeft.includes('h') ? 'text-orange-500' : 'text-gray-400'}`}>
+                            <Clock size={12} /> {isExpired ? 'Expired' : timeLeft}
+                        </span>
+                    </div>
+
+                    {/* Simple Usage Bar */}
+                    {coupon.usage_limit && (
+                        <div className="mt-4">
+                            <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-primary rounded-full transition-all"
+                                    style={{ width: `${usagePercent}%` }}
+                                />
+                            </div>
+                            <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">
+                                {usageRemaining} uses remaining
+                            </p>
+                        </div>
+                    )}
                 </div>
 
-                <div className="pt-4 border-t border-dashed border-[#e5e5d1] mt-auto">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#c19a6b]">
-                        Expires: {new Date(coupon.expiry_date).toLocaleDateString()}
-                    </p>
+                <div className="flex flex-col items-center gap-3">
+                    <button
+                        onClick={handleCopy}
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${copied ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
+                    >
+                        {copied ? <Check size={16} /> : <Copy size={16} />}
+                    </button>
+
+                    {!isExpired && !isApplied && (
+                        <button
+                            onClick={() => onApply(coupon.code)}
+                            className="bg-primary text-white text-[10px] font-black px-4 py-2 rounded-lg uppercase tracking-wider hover:bg-secondary transition-all shadow-lg shadow-primary/10"
+                        >
+                            Apply
+                        </button>
+                    )}
                 </div>
-            </div>
-
-            {/* Perforation Line - CSS Magic */}
-            <div className="w-4 bg-[#fdfaf5] relative flex flex-col justify-between items-center my-2">
-                <div className="absolute top-[-8px] w-4 h-4 rounded-full bg-[#fdfaf5] border-b border-[#e5e5d1]"></div>
-                <div className="w-[1px] h-full border-l-2 border-dashed border-[#e5e5d1]/50"></div>
-                <div className="absolute bottom-[-8px] w-4 h-4 rounded-full bg-[#fdfaf5] border-t border-[#e5e5d1]"></div>
-            </div>
-
-            {/* Right Side (Action) */}
-            <div className={`w-16 bg-white border border-l-0 border-[#e5e5d1] rounded-r-2xl flex flex-col items-center justify-center gap-4 transition-all duration-300 ${isApplied ? 'bg-primary/5 border-primary/20' : ''}`}>
-                <button
-                    onClick={handleCopy}
-                    className="w-8 h-8 rounded-full bg-[#fdfaf5] flex items-center justify-center text-[#9f8170] hover:text-primary hover:bg-primary/10 transition-colors"
-                    title="Copy Code"
-                >
-                    <Copy size={14} />
-                </button>
-
-                <button
-                    onClick={() => !isExpired && onApply(coupon.code)}
-                    disabled={isExpired || isApplied}
-                    className={`writing-vertical text-xs font-black uppercase tracking-widest py-4 transition-colors ${isApplied
-                            ? 'text-primary cursor-default'
-                            : isExpired
-                                ? 'text-gray-300 cursor-not-allowed'
-                                : 'text-[#c19a6b] hover:text-primary cursor-pointer'
-                        }`}
-                    style={{ writingMode: 'vertical-rl' }}
-                >
-                    {isApplied ? 'Applied' : isExpired ? 'Expired' : 'Apply'}
-                </button>
             </div>
         </div>
     );

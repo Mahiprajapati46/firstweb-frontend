@@ -217,374 +217,313 @@ const Checkout = () => {
     }
 
     return (
-        <div className="bg-[#fdfaf5] min-h-screen pb-32 pt-12">
-            <div className="container-custom max-w-7xl mx-auto px-6">
-                {/* User Friendly Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
-                    <div className="space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c19a6b]">Almost There</p>
-                        <h1 className="text-6xl font-black text-primary tracking-tighter italic serif">Complete Order<span className="text-[#c19a6b]">.</span></h1>
+        <div className="bg-[#f8f9fa] min-h-screen pt-12 pb-32">
+            <div className="max-w-6xl mx-auto px-4 md:px-6 pt-8">
+                {/* Simplified Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+                        <p className="text-sm text-gray-500 mt-1">Complete your order in two simple steps.</p>
                     </div>
-                    <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-[#e5e5d1]/50 shadow-sm">
+
+                    {/* Step Indicator */}
+                    <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
                         <button
                             onClick={() => setStep(1)}
-                            className={`flex items-center gap-3 px-6 py-3 rounded-xl transition-all ${step === 1 ? 'bg-primary text-white scale-105 shadow-xl' : 'text-gray-400'}`}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg transition-all ${step === 1 ? 'bg-primary text-white font-bold shadow-md' : 'text-gray-400 font-medium hover:bg-gray-50'}`}
                         >
                             <MapPin size={16} />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Shipping</span>
+                            <span className="text-xs uppercase tracking-wider">1. Shipping</span>
                         </button>
-                        <ChevronRight size={14} className="text-gray-200" />
+                        <ChevronRight size={14} className="text-gray-300" />
                         <button
                             disabled={!selectedAddress}
                             onClick={() => setStep(2)}
-                            className={`flex items-center gap-3 px-6 py-3 rounded-xl transition-all ${step === 2 ? 'bg-primary text-white scale-105 shadow-xl' : 'text-gray-400'}`}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg transition-all ${step === 2 ? 'bg-primary text-white font-bold shadow-md' : 'text-gray-400 font-medium hover:bg-gray-50 disabled:opacity-30'}`}
                         >
                             <CreditCard size={16} />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Payment</span>
+                            <span className="text-xs uppercase tracking-wider">2. Payment</span>
                         </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                     {/* Main Content */}
-                    <div className="lg:col-span-2 space-y-12">
+                    <div className="lg:col-span-2 space-y-8">
                         {step === 1 ? (
-                            <div className="space-y-12 animate-in fade-in slide-in-from-left-8 duration-700">
-                                <div className="space-y-6">
+                            <div className="space-y-8 animate-in fade-in duration-500">
+                                <section className="space-y-6">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-3xl font-black text-primary tracking-tighter italic serif">Delivery Address</h3>
-                                        <Link to="/profile" className="text-[10px] font-black uppercase tracking-widest text-[#c19a6b] hover:text-primary transition-colors hover:underline underline-offset-4">Manage Addresses</Link>
+                                        <h3 className="text-xl font-bold text-gray-900">Delivery Address</h3>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {addresses.map((addr) => (
                                             <button
                                                 key={addr._id}
                                                 onClick={() => setSelectedAddress(addr)}
-                                                className={`group relative text-left p-8 rounded-[2.5rem] border-2 transition-all duration-500 scale-95 hover:scale-100 ${selectedAddress?._id === addr._id ? 'bg-white border-primary shadow-2xl' : 'bg-white/50 border-[#e5e5d1]/50 hover:border-[#c19a6b30]'}`}
+                                                className={`text-left p-6 rounded-2xl border-2 transition-all ${selectedAddress?._id === addr._id ? 'bg-white border-primary ring-4 ring-primary/5' : 'bg-white border-gray-100 hover:border-gray-200 shadow-sm'}`}
                                             >
-                                                <div className="space-y-2">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <span className="px-3 py-1 bg-[#fdfaf5] border border-[#e5e5d1]/50 rounded-lg text-[8px] font-black uppercase tracking-widest text-[#9f8170]">{addr.type}</span>
-                                                        {selectedAddress?._id === addr._id && <CheckCircle2 size={16} className="text-primary" />}
-                                                    </div>
-                                                    <h4 className="text-lg font-black text-primary tracking-tight">{addr.full_name}</h4>
-                                                    <p className="text-xs font-medium text-[#9f8170] leading-relaxed italic line-clamp-2">
-                                                        {addr.address_line1}, {addr.city}
-                                                    </p>
-                                                    <p className="text-[10px] font-black tracking-widest text-gray-400 uppercase pt-2">{addr.phone}</p>
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <span className="px-2 py-0.5 bg-gray-50 text-[10px] font-black uppercase text-gray-500 rounded border border-gray-100">{addr.type}</span>
+                                                    {selectedAddress?._id === addr._id && <CheckCircle2 size={18} className="text-primary" />}
                                                 </div>
+                                                <h4 className="font-bold text-gray-900 mb-1">{addr.full_name}</h4>
+                                                <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">
+                                                    {addr.address_line1}, {addr.city}, {addr.postal_code}
+                                                </p>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{addr.phone}</p>
                                             </button>
                                         ))}
-                                        {addresses.length === 0 && (
-                                            <div className="md:col-span-2 p-16 text-center bg-white/30 rounded-[3rem] border-2 border-dashed border-[#e5e5d1]">
-                                                <MapPin size={32} className="mx-auto text-gray-200 mb-4" />
-                                                <p className="text-sm font-bold text-gray-400 italic mb-6">No saved addresses found.</p>
-                                                <Link to="/profile" className="inline-flex py-4 px-8 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Add New Address</Link>
-                                            </div>
-                                        )}
+
                                         <button
                                             onClick={() => setIsAddAddressOpen(true)}
-                                            className="group relative p-8 rounded-[2.5rem] border-2 border-dashed border-[#e5e5d1] hover:border-[#c19a6b] transition-all flex flex-col items-center justify-center gap-4 bg-white/30"
+                                            className="p-6 rounded-2xl border-2 border-dashed border-gray-200 hover:border-primary/30 hover:bg-white transition-all flex flex-col items-center justify-center gap-3 text-gray-400 group"
                                         >
-                                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#c19a6b] shadow-sm">
-                                                <Plus size={24} />
+                                            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                                                <Plus size={20} />
                                             </div>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Add New Location</span>
+                                            <span className="text-xs font-bold uppercase tracking-wider">Add New Address</span>
                                         </button>
                                     </div>
-                                </div>
+                                </section>
 
-                                {/* Delivery Info */}
-                                <div className="p-8 bg-[#fdfaf5] border border-[#c19a6b20] rounded-[2.5rem] flex gap-8 items-start">
-                                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#c19a6b] shadow-sm shrink-0">
-                                        <Truck size={24} />
+                                <div className="p-6 bg-emerald-50/50 border border-emerald-100 rounded-2xl flex gap-4 items-center">
+                                    <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 shrink-0">
+                                        <Truck size={20} />
                                     </div>
-                                    <div className="space-y-1">
-                                        <h4 className="text-sm font-black uppercase tracking-widest text-primary italic">Fast Shipping</h4>
-                                        <p className="text-xs font-medium text-[#9f8170] leading-relaxed italic">
-                                            Your items will be carefully packed and shipped. Delivery usually takes 2-4 business days.
-                                        </p>
+                                    <div className="space-y-0.5">
+                                        <h4 className="text-xs font-bold text-emerald-900 uppercase tracking-wide">Free Standard Delivery</h4>
+                                        <p className="text-xs text-emerald-700">Estimated delivery within 3-5 business days.</p>
                                     </div>
                                 </div>
 
-                                <div className="flex pt-8">
-                                    <button
-                                        onClick={() => setStep(2)}
-                                        disabled={!selectedAddress}
-                                        className="flex-1 py-6 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
-                                    >
-                                        Proceed to Payment <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={() => setStep(2)}
+                                    disabled={!selectedAddress}
+                                    className="w-full py-4 bg-primary text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg shadow-primary/10 hover:bg-secondary transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+                                >
+                                    Proceed to Payment <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </button>
                             </div>
                         ) : (
-                            <div className="space-y-12 animate-in fade-in slide-in-from-right-8 duration-700">
-                                {/* Order Review */}
-                                <div className="space-y-6">
-                                    <h3 className="text-3xl font-black text-primary tracking-tighter italic serif">Review Items</h3>
-                                    <div className="bg-white rounded-[3rem] border border-[#e5e5d1]/30 overflow-hidden divide-y divide-[#e5e5d1]/30">
+                            <div className="space-y-8 animate-in fade-in duration-500">
+                                <section className="space-y-6">
+                                    <h3 className="text-xl font-bold text-gray-900">Review Items</h3>
+                                    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
                                         {preview?.items.map((item, i) => (
-                                            <div key={i} className="p-8 flex items-center gap-6 group hover:bg-[#fdfaf5] transition-colors relative">
-                                                <div className="w-16 h-16 bg-[#fdfaf5] rounded-xl overflow-hidden shrink-0 border border-[#e5e5d1]/30">
-                                                    <img src={item.product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1999'} className="w-full h-full object-cover" alt={item.product_name} />
+                                            <div key={i} className="p-4 flex items-center gap-4 border-b border-gray-50 last:border-0">
+                                                <div className="w-12 h-12 bg-gray-50 rounded-lg overflow-hidden shrink-0">
+                                                    <img src={item.product?.images?.[0]} className="w-full h-full object-cover" alt="" />
                                                 </div>
-                                                <div className="flex-1">
-                                                    <Link to={`/products/${item.product?.slug}`} className="text-sm font-black text-primary tracking-tight hover:text-[#c19a6b] transition-colors stretched-link">
-                                                        {item.product_name}
-                                                    </Link>
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#9f8170] italic mt-1">Quantity: {item.quantity}</p>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-sm font-bold text-gray-900 truncate">{item.product_name}</h4>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Quantity: {item.quantity}</p>
                                                 </div>
-                                                <p className="text-sm font-black text-primary tabular-nums">₹ {item.price * item.quantity}</p>
+                                                <p className="text-sm font-black text-gray-900">₹{item.price * item.quantity}</p>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                </section>
 
-                                {/* Payment Options */}
-                                <div className="space-y-6">
-                                    <h3 className="text-3xl font-black text-primary tracking-tighter italic serif">Choose Payment</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Wallet Option */}
+                                <section className="space-y-6">
+                                    <h3 className="text-xl font-bold text-gray-900">Payment Method</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <button
                                             onClick={() => setUseWallet(!useWallet)}
-                                            className={`group p-8 rounded-[2.5rem] border-2 text-left transition-all duration-500 hover:scale-[1.02] ${useWallet ? 'bg-white border-[#c19a6b] shadow-2xl shadow-[#c19a6b10]' : 'bg-white/50 border-[#e5e5d1]/50'}`}
+                                            className={`p-6 rounded-2xl border-2 text-left transition-all ${useWallet ? 'bg-white border-primary shadow-lg ring-4 ring-primary/5' : 'bg-white border-gray-100 hover:border-gray-200'}`}
                                         >
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className={`p-4 rounded-2xl transition-colors ${useWallet ? 'bg-[#c19a6b] text-white shadow-lg' : 'bg-[#c19a6b10] text-[#c19a6b]'}`}>
-                                                    <Wallet size={24} />
+                                            <div className="flex justify-between items-center mb-4">
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${useWallet ? 'bg-primary text-white' : 'bg-gray-50 text-gray-400'}`}>
+                                                    <Wallet size={20} />
                                                 </div>
-                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${useWallet ? 'border-[#c19a6b] bg-[#c19a6b]' : 'border-gray-200'}`}>
+                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${useWallet ? 'border-primary bg-primary' : 'border-gray-200'}`}>
                                                     {useWallet && <CheckCircle2 size={12} className="text-white" />}
                                                 </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <h4 className="text-lg font-black text-primary tracking-tight">Matte Wallet</h4>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Balance: ₹ {preview?.summary?.wallet_balance || 0}</p>
-                                            </div>
+                                            <h4 className="font-bold text-gray-900">My Wallet</h4>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">Available: ₹{preview?.summary?.wallet_balance || 0}</p>
 
-                                            {useWallet && preview?.summary?.wallet_balance > 0 ? (
-                                                <div className="mt-6 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                                                    <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600 italic">
-                                                        Applied: -₹ {Math.min(preview.summary.wallet_balance, preview.summary.total).toLocaleString()}
-                                                    </p>
-                                                </div>
-                                            ) : useWallet && (
-                                                <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-start gap-2">
-                                                    <Info size={12} className="text-amber-500 mt-0.5" />
-                                                    <p className="text-[9px] font-bold text-amber-700 leading-tight italic">
-                                                        Wallet is empty. <Link to="/wallet" className="underline decoration-amber-500/30 hover:text-amber-900 transition-colors">Top up here</Link>
+                                            {useWallet && preview?.summary?.wallet_balance > 0 && (
+                                                <div className="mt-4 p-2 bg-emerald-50 rounded-lg border border-emerald-100 text-center">
+                                                    <p className="text-[9px] font-black text-emerald-600 uppercase">
+                                                        Using ₹{Math.min(preview.summary.wallet_balance, preview.summary.total).toLocaleString()}
                                                     </p>
                                                 </div>
                                             )}
                                         </button>
 
-                                        {/* Stripe Option */}
-                                        <div className={`p-8 rounded-[2.5rem] border-2 transition-all duration-500 relative overflow-hidden ${(!useWallet || (preview?.summary?.wallet_balance || 0) < (preview?.summary?.total || 0)) ? 'bg-primary border-primary shadow-2xl shadow-primary/20' : 'bg-white/50 border-[#e5e5d1]/50 grayscale opacity-40'}`}>
-                                            <div className="relative z-10">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className={`p-4 rounded-2xl ${(!useWallet || (preview?.summary?.wallet_balance || 0) < (preview?.summary?.total || 0)) ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                                        <CreditCard size={24} />
-                                                    </div>
-                                                    <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${(!useWallet || (preview?.summary?.wallet_balance || 0) < (preview?.summary?.total || 0)) ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-400'}`}>Secure</span>
+                                        <div className={`p-6 rounded-2xl border-2 transition-all ${(!useWallet || (preview?.summary?.wallet_balance || 0) < (preview?.summary?.total || 0)) ? 'bg-gray-900 border-gray-900 text-white shadow-lg' : 'bg-white border-gray-100 opacity-50 grayscale'}`}>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                                                    <CreditCard size={20} />
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <h4 className={`text-lg font-black tracking-tight ${(!useWallet || (preview?.summary?.wallet_balance || 0) < (preview?.summary?.total || 0)) ? 'text-white' : 'text-gray-400'}`}>Online Payment</h4>
-                                                    <p className={`text-[10px] font-medium italic ${(!useWallet || (preview?.summary?.wallet_balance || 0) < (preview?.summary?.total || 0)) ? 'text-white/60' : 'text-gray-400'}`}>Card, UPI, or Netbanking via Stripe.</p>
-                                                </div>
-
-                                                {useWallet && (preview?.summary?.wallet_balance || 0) > 0 && (preview?.summary?.wallet_balance || 0) < (preview?.summary?.total || 0) && (
-                                                    <div className="mt-6 p-4 bg-white/5 rounded-2xl border border-white/10">
-                                                        <p className="text-[9px] font-black uppercase tracking-widest text-white/80 italic">
-                                                            Required: ₹ {(preview.summary.total - preview.summary.wallet_balance).toLocaleString()}
-                                                        </p>
-                                                    </div>
-                                                )}
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-white/50 bg-white/5 px-2 py-0.5 rounded">Secure</span>
                                             </div>
-                                            <ShieldCheck size={80} className={`absolute -right-4 -bottom-4 rotate-12 transition-opacity ${(!useWallet || (preview?.summary?.wallet_balance || 0) < (preview?.summary?.total || 0)) ? 'text-white/5 opacity-100' : 'opacity-0'}`} />
+                                            <h4 className="font-bold">Online Payment</h4>
+                                            <p className="text-[10px] text-white/60 mt-1">Pay via UPI, Cards, or Netbanking.</p>
                                         </div>
                                     </div>
-                                </div>
+                                </section>
 
-                                <div className="flex items-center gap-6 pt-8">
+                                <div className="flex items-center gap-4 pt-4">
                                     <button
                                         onClick={() => setStep(1)}
-                                        className="px-10 py-6 border border-[#e5e5d1] rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-primary hover:bg-white transition-all flex items-center gap-3"
+                                        className="px-6 py-4 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-white transition-all flex items-center gap-2"
                                     >
                                         <ArrowLeft size={16} /> Back
                                     </button>
                                     <button
                                         onClick={handlePlaceOrder}
                                         disabled={processingOrder}
-                                        className="flex-1 py-6 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-4 group"
+                                        className="flex-1 py-4 bg-primary text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg shadow-primary/10 hover:bg-secondary transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
-                                        {processingOrder ? 'Processing...' : 'Place Order Now'}
-                                        {!processingOrder && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
+                                        {processingOrder ? 'Processing...' : 'Place Order'}
+                                        {!processingOrder && <ArrowRight size={18} />}
                                     </button>
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    {/* Order Summary Sidebar */}
-                    <div className="lg:col-span-1 space-y-8 sticky top-32">
-                        <div className="bg-white p-10 rounded-[3rem] border border-[#e5e5d1]/30 shadow-xl space-y-10">
-                            <div>
-                                <h4 className="text-3xl font-black text-primary tracking-tighter">Order Summary</h4>
-                            </div>
-
-                            <div className="space-y-6 border-y border-[#e5e5d1]/30 py-10">
-                                <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-[#9f8170]">
-                                    <span>Items Total</span>
-                                    <span className="text-primary tabular-nums">₹ {preview?.summary?.subtotal || 0}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-[#9f8170]">
-                                    <span>Shipping</span>
-                                    <span className="text-emerald-500 italic">Free</span>
-                                </div>
-                                {(preview?.summary?.discount || 0) > 0 && (
-                                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-emerald-500">
-                                        <span>Discount</span>
-                                        <span className="tabular-nums">- ₹ {preview.summary.discount}</span>
-                                    </div>
-                                )}
-                                {useWallet && (preview?.summary?.wallet_balance || 0) > 0 && (
-                                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-[#c19a6b]">
-                                        <span>Wallet Contribution</span>
-                                        <span className="tabular-nums">- ₹ {Math.min(preview.summary.wallet_balance, preview.summary.total).toLocaleString()}</span>
-                                    </div>
-                                )}
-                            </div>
+                    {/* Sidebar Summary */}
+                    <div className="lg:col-span-1">
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6 sticky top-24">
+                            <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Price Details</h3>
 
                             <div className="space-y-4">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Coupon Code</p>
-                                <div className="relative">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">Total MRP</span>
+                                    <span className="font-bold text-gray-900">₹{preview?.summary?.subtotal || 0}</span>
+                                </div>
+                                {(preview?.summary?.discount || 0) > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-500">Coupon Discount</span>
+                                        <span className="font-bold text-emerald-500">-₹{preview.summary.discount}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">Delivery Charges</span>
+                                    <span className="font-bold text-emerald-500 uppercase text-[11px]">Free</span>
+                                </div>
+
+                                {useWallet && (preview?.summary?.wallet_balance || 0) > 0 && (
+                                    <div className="flex justify-between text-sm pt-4 border-t border-gray-50 text-primary">
+                                        <span className="font-bold">Wallet Pay</span>
+                                        <span className="font-black">-₹{Math.min(preview.summary.wallet_balance, preview.summary.total).toLocaleString()}</span>
+                                    </div>
+                                )}
+
+                                <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+                                    <span className="font-bold text-gray-900">{useWallet ? 'Payable Now' : 'Total Amount'}</span>
+                                    <span className="text-2xl font-black text-primary">
+                                        ₹{(useWallet
+                                            ? Math.max(0, (preview?.summary?.total || 0) - (preview?.summary?.wallet_balance || 0))
+                                            : (preview?.summary?.total || 0)).toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Coupon Input Area */}
+                            <div className="space-y-3 pt-6 border-t border-gray-50">
+                                <div className="flex gap-2">
                                     <input
                                         type="text"
-                                        placeholder="Enter code"
-                                        className="w-full bg-[#fdfaf5] border border-[#e5e5d1] rounded-2xl px-6 py-4 pr-32 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:border-[#c19a6b] transition-colors"
+                                        placeholder="Enter Coupon"
+                                        className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all"
                                         value={couponCode}
                                         onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                                     />
                                     <button
                                         onClick={handleApplyCoupon}
                                         disabled={applyingCoupon || !couponCode}
-                                        className="absolute right-2 top-2 bottom-2 px-6 bg-primary text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-[#c19a6b] transition-colors disabled:opacity-50"
+                                        className="bg-primary text-white px-4 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-secondary transition-all disabled:opacity-50"
                                     >
-                                        {applyingCoupon ? '...' : 'Apply'}
+                                        Apply
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-3 pt-6 border-t border-[#e5e5d1]/30">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-black uppercase tracking-widest text-primary">Final Amount Payable</span>
-                                    <span className="text-4xl font-black text-primary tracking-tighter tabular-nums italic">
-                                        ₹ {(useWallet
-                                            ? Math.max(0, (preview?.summary?.total || 0) - (preview?.summary?.wallet_balance || 0))
-                                            : (preview?.summary?.total || 0)).toLocaleString()}
-                                    </span>
-                                </div>
-
-                                {useWallet && (preview?.summary?.wallet_balance || 0) >= (preview?.summary?.total || 0) ? (
-                                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-center gap-3">
-                                        <CheckCircle2 size={16} className="text-emerald-500" />
-                                        <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600 italic">Fully covered by your wallet balance</p>
-                                    </div>
-                                ) : useWallet && (preview?.summary?.wallet_balance || 0) > 0 ? (
-                                    <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-center justify-center gap-3">
-                                        <CreditCard size={16} className="text-amber-500" />
-                                        <p className="text-[9px] font-black uppercase tracking-widest text-[#c19a6b] italic font-bold">Partial wallet use + Secure Stripe payment</p>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center justify-end gap-2 text-[8px] font-black uppercase tracking-widest text-gray-400 italic pt-1">
-                                        <ShieldCheck size={12} className="text-primary" />
-                                        <span>Secure Checkout via Stripe</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Trust Badge */}
-                            <div className="pt-4 flex items-center gap-3 text-gray-400">
-                                <ShieldCheck size={14} className="text-[#c19a6b]" />
-                                <span className="text-[8px] font-black uppercase tracking-widest italic leading-none">Your transaction is 100% secure</span>
+                            <div className="flex items-center justify-center gap-3 p-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-100">
+                                <ShieldCheck size={18} className="text-primary" />
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">100% Secure Transaction</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* New Address Form Modal */}
+                {/* Simplified Address Modal */}
                 {isAddAddressOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-12">
-                        <div className="absolute inset-0 bg-primary/20 backdrop-blur-md" onClick={() => setIsAddAddressOpen(false)}></div>
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setIsAddAddressOpen(false)}></div>
                         <form
                             onSubmit={handleAddAddress}
-                            className="relative w-full max-w-2xl bg-white rounded-[3.5rem] border border-[#c19a6b20] p-12 shadow-[0_32px_128px_rgba(0,0,0,0.1)] animate-in zoom-in-95 duration-500 space-y-8"
+                            className="relative w-full max-w-lg bg-white rounded-2xl p-8 shadow-2xl animate-in zoom-in-95 duration-300"
                             onClick={e => e.stopPropagation()}
                         >
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-3xl font-black text-primary tracking-tighter italic serif">Add New Address</h3>
-                                <button type="button" onClick={() => setIsAddAddressOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors uppercase text-[10px] font-black">Close</button>
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="text-xl font-bold text-gray-900">New Address</h3>
+                                <button type="button" onClick={() => setIsAddAddressOpen(false)} className="text-gray-400 hover:text-red-500 font-bold text-xs uppercase">Close</button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Full Name</label>
-                                    <input
-                                        required
-                                        placeholder="Who is this for?"
-                                        className="w-full bg-[#fdfaf5] border border-[#e5e5d1] rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:border-[#c19a6b] transition-colors"
-                                        value={newAddress.full_name}
-                                        onChange={(e) => setNewAddress({ ...newAddress, full_name: e.target.value })}
-                                    />
+                            <div className="space-y-4 mb-8">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Full Name</label>
+                                        <input
+                                            required
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all"
+                                            value={newAddress.full_name}
+                                            onChange={(e) => setNewAddress({ ...newAddress, full_name: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Phone</label>
+                                        <input
+                                            required
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all"
+                                            value={newAddress.phone}
+                                            onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Phone Number</label>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Address Line 1</label>
                                     <input
                                         required
-                                        placeholder="Active Mobile No."
-                                        className="w-full bg-[#fdfaf5] border border-[#e5e5d1] rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:border-[#c19a6b] transition-colors"
-                                        value={newAddress.phone}
-                                        onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
-                                    />
-                                </div>
-                                <div className="md:col-span-2 space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Flat / House No. / Street</label>
-                                    <input
-                                        required
-                                        placeholder="Address Line 1"
-                                        className="w-full bg-[#fdfaf5] border border-[#e5e5d1] rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:border-[#c19a6b] transition-colors"
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all"
                                         value={newAddress.address_line1}
                                         onChange={(e) => setNewAddress({ ...newAddress, address_line1: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">City</label>
-                                    <input
-                                        required
-                                        placeholder="Your City"
-                                        className="w-full bg-[#fdfaf5] border border-[#e5e5d1] rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:border-[#c19a6b] transition-colors"
-                                        value={newAddress.city}
-                                        onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Pincode</label>
-                                    <input
-                                        required
-                                        placeholder="6-digit code"
-                                        className="w-full bg-[#fdfaf5] border border-[#e5e5d1] rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:border-[#c19a6b] transition-colors"
-                                        value={newAddress.postal_code}
-                                        onChange={(e) => setNewAddress({ ...newAddress, postal_code: e.target.value })}
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase">City</label>
+                                        <input
+                                            required
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all"
+                                            value={newAddress.city}
+                                            onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Pincode</label>
+                                        <input
+                                            required
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all"
+                                            value={newAddress.postal_code}
+                                            onChange={(e) => setNewAddress({ ...newAddress, postal_code: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             <button
                                 disabled={submittingAddress}
                                 type="submit"
-                                className="w-full py-6 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 group"
+                                className="w-full py-4 bg-primary text-white rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-secondary transition-all shadow-lg shadow-primary/10"
                             >
-                                {submittingAddress ? 'Saving...' : 'Save and Use Address'} <Plus size={18} />
+                                {submittingAddress ? 'Saving...' : 'Save Address'}
                             </button>
                         </form>
                     </div>

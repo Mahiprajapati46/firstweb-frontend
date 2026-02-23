@@ -101,72 +101,87 @@ const OrderSuccess = () => {
     }
 
     return (
-        <div className="bg-[#fdfaf5] min-h-screen pb-32 pt-12">
-            <div className="container-custom max-w-3xl mx-auto px-6 text-center">
+        <div className="bg-[#f8f9fa] min-h-screen pb-24 pt-12">
+            <div className="max-w-2xl mx-auto px-6 text-center">
                 {/* Success Header */}
-                <div className="mb-16 animate-in zoom-in-50 duration-1000">
-                    <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center text-emerald-500 mx-auto shadow-2xl shadow-emerald-500/10 border border-emerald-100/50 mb-8">
-                        <CheckCircle2 size={48} />
+                <div className="mb-12">
+                    <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 mx-auto border border-emerald-100 mb-6">
+                        <CheckCircle2 size={40} />
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#c19a6b] mb-4">Success</p>
-                    <h1 className="text-7xl font-black text-primary tracking-tighter italic serif">Order Placed<span className="text-[#c19a6b]">!</span></h1>
+                    <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Order Placed Successfully!</h1>
+                    <p className="text-gray-500 mt-2 font-medium italic">Thank you for shopping with us.</p>
                 </div>
 
                 {/* Details Card */}
-                <div className="bg-white rounded-[3.5rem] border border-[#e5e5d1]/50 p-12 shadow-2xl shadow-[#c19a6b05] mb-16 space-y-12 animate-in slide-in-from-bottom-12 duration-700">
-                    <div className="space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#9f8170]">Order Number</p>
-                        <h3 className="text-3xl font-black text-primary tracking-tight tabular-nums">#{order.order_number || order.order_id?.slice(-8).toUpperCase()}</h3>
+                <div className="bg-white rounded-2xl border border-gray-100 p-8 md:p-10 shadow-sm mb-10 space-y-8 text-left">
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Order Number</p>
+                        <h3 className="text-2xl font-bold text-gray-900">#{order.order_number || order.order_id?.slice(-8).toUpperCase()}</h3>
                     </div>
 
-                    {/* Payment Breakdown */}
-                    <div className="space-y-6 border-y border-[#e5e5d1]/30 py-10 text-left">
-                        <h4 className="text-xl font-black text-primary tracking-tight italic serif">Payment Details</h4>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-[#9f8170]">
+                    {/* Payment Details */}
+                    <div className="space-y-4 border-t border-gray-50 pt-8">
+                        <h4 className="text-sm font-black uppercase tracking-widest text-gray-400">Payment Summary</h4>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between text-xs font-bold text-gray-500">
                                 <span>Subtotal</span>
-                                <span className="text-primary tabular-nums">₹ {order.pricing?.subtotal || 0}</span>
+                                <span className="text-gray-900">₹{(order.pricing?.subtotal || order.summary?.subtotal || 0).toLocaleString()}</span>
                             </div>
-                            <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-[#9f8170]">
+                            <div className="flex items-center justify-between text-xs font-bold text-gray-500">
                                 <span>Shipping</span>
-                                <span className="text-emerald-500 italic">Free</span>
+                                <span className="text-emerald-500 uppercase text-[10px]">Free</span>
                             </div>
-                            {(order.pricing?.discount > 0) && (
-                                <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-emerald-500">
+                            {(order.pricing?.discount > 0 || order.summary?.discount > 0) && (
+                                <div className="flex items-center justify-between text-xs font-bold text-emerald-500">
                                     <span className="flex items-center gap-2">
                                         Discount
-                                        {order.pricing.coupon_code && <span className="bg-emerald-50 px-2 py-0.5 rounded text-[8px] border border-emerald-100">{order.pricing.coupon_code}</span>}
+                                        {(order.pricing?.coupon_code || order.summary?.coupon?.code) && (
+                                            <span className="bg-emerald-50 px-1.5 py-0.5 rounded text-[8px] border border-emerald-100">
+                                                {order.pricing?.coupon_code || order.summary?.coupon?.code}
+                                            </span>
+                                        )}
                                     </span>
-                                    <span className="tabular-nums">- ₹ {order.pricing.discount}</span>
+                                    <span>- ₹{(order.pricing?.discount || order.summary?.discount).toLocaleString()}</span>
                                 </div>
                             )}
-                            <div className="flex items-center justify-between text-sm font-black uppercase tracking-widest text-primary pt-4 border-t border-[#e5e5d1]/30">
+
+                            {(order.pricing?.amount_paid_via_wallet > 0 || order.payment_info?.amount_paid_via_wallet > 0) && (
+                                <div className="flex items-center justify-between text-xs font-bold text-primary italic">
+                                    <span>Paid via Wallet</span>
+                                    <span>- ₹{(order.pricing?.amount_paid_via_wallet || order.payment_info?.amount_paid_via_wallet).toLocaleString()}</span>
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-between text-sm font-bold text-gray-900 pt-3 border-t border-gray-50">
                                 <span>Total Paid</span>
-                                <span className="text-2xl tracking-tighter tabular-nums">₹ {order.pricing?.total || 0}</span>
+                                <span className="text-xl font-black text-primary">₹{(order.pricing?.total || order.summary?.total || 0).toLocaleString()}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="space-y-6">
-                        <p className="text-xs font-medium text-[#9f8170] italic leading-relaxed px-8">
-                            Thank you for your order! We'll start preparing your items right away. You'll receive an email confirmation with tracking details as soon as your package is on its way.
+                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-100 flex gap-4">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary border border-gray-100 shrink-0">
+                            <Truck size={20} />
+                        </div>
+                        <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                            We've received your order and will begin processing it immediately. You'll receive updates on your registered email.
                         </p>
                     </div>
                 </div>
 
                 {/* CTAs */}
-                <div className="flex flex-col md:flex-row items-center justify-center gap-6 animate-in fade-in duration-1000 delay-500">
+                <div className="flex flex-col md:flex-row items-center justify-center gap-4">
                     <Link
                         to="/orders"
-                        className="w-full md:w-auto px-10 py-6 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 group"
+                        className="w-full md:w-auto px-8 py-4 bg-primary text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
                     >
-                        View Order Status <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        View My Orders <ArrowRight size={18} />
                     </Link>
                     <button
                         onClick={() => navigate('/')}
-                        className="w-full md:w-auto px-10 py-6 border border-[#e5e5d1] rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-[#9f8170] hover:text-primary transition-all flex items-center justify-center gap-3"
+                        className="w-full md:w-auto px-8 py-4 border border-gray-200 rounded-xl text-xs font-bold uppercase tracking-widest text-gray-500 hover:border-gray-300 transition-all flex items-center justify-center gap-2"
                     >
-                        <ChevronLeft size={16} /> Back to Home
+                        Continue Shopping
                     </button>
                 </div>
             </div>

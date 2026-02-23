@@ -6,7 +6,11 @@ import {
     ShoppingCart,
     ArrowUpRight,
     ArrowDownRight,
-    MoreHorizontal
+    Wallet,
+    Store,
+    Landmark,
+    BadgePercent,
+    RefreshCcw
 } from 'lucide-react';
 import {
     AreaChart,
@@ -46,10 +50,26 @@ const StatCard = ({ title, value, change, icon: Icon, trend, className }) => (
     </div>
 );
 
+// ─── Platform Wallet Snapshot ────────────────────────────────────────────────
+const WalletCard = ({ icon: Icon, label, value, sub, color, bg }) => (
+    <div className="card-premium p-6 flex items-start gap-4 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+        <div className="p-3 rounded-2xl flex-shrink-0" style={{ background: bg }}>
+            <Icon size={22} style={{ color }} />
+        </div>
+        <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{label}</p>
+            <p className="text-2xl font-black text-primary tracking-tight truncate">{value}</p>
+            {sub && <p className="text-xs text-gray-400 font-medium mt-0.5">{sub}</p>}
+        </div>
+    </div>
+);
+
 const AdminDashboard = () => {
     const [salesData, setSalesData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [dashboardData, setDashboardData] = useState(null);
+    const [walletData, setWalletData] = useState(null);
+    const [walletLoading, setWalletLoading] = useState(true);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -59,7 +79,6 @@ const AdminDashboard = () => {
                     adminApi.getSalesTrend(30),
                     adminApi.getDashboardStats()
                 ]);
-
                 setSalesData(trendResponse.data || []);
                 setDashboardData(statsResponse.data);
             } catch (error) {
@@ -69,8 +88,23 @@ const AdminDashboard = () => {
             }
         };
 
+        const fetchWalletSummary = async () => {
+            try {
+                setWalletLoading(true);
+                const res = await adminApi.getWalletSummary();
+                setWalletData(res.data);
+            } catch (err) {
+                console.error('Failed to fetch wallet summary:', err);
+            } finally {
+                setWalletLoading(false);
+            }
+        };
+
         fetchDashboardData();
+        fetchWalletSummary();
     }, []);
+
+    const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
     if (loading) {
         return (
@@ -96,7 +130,7 @@ const AdminDashboard = () => {
                     change="+12.5%"
                     trend="up"
                     icon={TrendingUp}
-                    className="border-l-4 border-[#c19a6b]" // Sand
+                    className="border-l-4 border-[#c19a6b]"
                 />
                 <StatCard
                     title="Platform Commission"
@@ -104,7 +138,7 @@ const AdminDashboard = () => {
                     change="+8.2%"
                     trend="up"
                     icon={ShoppingCart}
-                    className="border-l-4 border-[#9f8170]" // Umber
+                    className="border-l-4 border-[#9f8170]"
                 />
                 <StatCard
                     title="Inventory Approvals"
@@ -112,7 +146,7 @@ const AdminDashboard = () => {
                     change="-2.4%"
                     trend="down"
                     icon={Package}
-                    className="border-l-4 border-[#cb997e]" // Earthy Rose
+                    className="border-l-4 border-[#cb997e]"
                 />
                 <StatCard
                     title="Merchant Approvals"
@@ -120,8 +154,73 @@ const AdminDashboard = () => {
                     change="+14%"
                     trend="up"
                     icon={Users}
-                    className="border-l-4 border-[#8a7d6b]" // Taupe
+                    className="border-l-4 border-[#8a7d6b]"
                 />
+            </div>
+
+            {/* ─── Platform Wallet Overview ─────────────────────────────────── */}
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 className="text-lg font-black text-primary tracking-tight">Platform Financial Overview</h2>
+                        <p className="text-xs text-gray-400 font-medium mt-0.5">Live wallet balances across all stakeholders</p>
+                    </div>
+                    {walletLoading && (
+                        <RefreshCcw size={16} className="text-primary animate-spin" />
+                    )}
+                </div>
+
+                {walletData ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                        {/* Platform Commission */}
+                        <WalletCard
+                            icon={BadgePercent}
+                            label="Platform Earnings"
+                            value={fmt(walletData.platform?.totalCommissions)}
+                            sub="Total commission collected"
+                            color="#c19a6b"
+                            bg="#c19a6b15"
+                        />
+                        {/* Customer Wallets */}
+                        <WalletCard
+                            icon={Users}
+                            label="Customer Wallets"
+                            value={fmt(walletData.customers?.totalBalance)}
+                            sub={`Across ${walletData.customers?.count || 0} wallets`}
+                            color="#6366f1"
+                            bg="#6366f115"
+                        />
+                        {/* Merchant Pending */}
+                        <WalletCard
+                            icon={Store}
+                            label="Merchant Pending"
+                            value={fmt(walletData.merchants?.totalPending)}
+                            sub={`Awaiting clearance · ${walletData.merchants?.count || 0} merchants`}
+                            color="#f59e0b"
+                            bg="#f59e0b15"
+                        />
+                        {/* Merchant Available */}
+                        <WalletCard
+                            icon={Landmark}
+                            label="Merchant Available"
+                            value={fmt(walletData.merchants?.totalAvailable)}
+                            sub={`Ready to withdraw · ₹${Number(walletData.merchants?.totalWithdrawn || 0).toLocaleString('en-IN')} paid out`}
+                            color="#10b981"
+                            bg="#10b98115"
+                        />
+                    </div>
+                ) : !walletLoading ? (
+                    <div className="card-premium p-8 text-center text-gray-400">
+                        <Wallet size={32} className="mx-auto mb-3 opacity-30" />
+                        <p className="font-semibold text-sm">Wallet data unavailable</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="card-premium p-6 h-28 animate-pulse bg-gray-50" />
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Main Charts Row */}
@@ -195,9 +294,7 @@ const AdminDashboard = () => {
                                         <p className="text-sm font-bold text-gray-900 truncate">
                                             {log.admin} {log.action.toLowerCase().replace('_', ' ')}
                                         </p>
-                                        <p className="text-xs text-gray-500 truncate mt-0.5">
-                                            Target: {log.target}
-                                        </p>
+                                        <p className="text-xs text-gray-500 truncate mt-0.5">Target: {log.target}</p>
                                         <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-bold">
                                             {new Date(log.timestamp).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
                                         </p>

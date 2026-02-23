@@ -71,54 +71,54 @@ const ProductListing = () => {
     };
 
     return (
-        <div className="bg-[#fdfaf5] min-h-screen pt-12">
-            <div className="container-custom max-w-7xl mx-auto px-6">
+        <div className="bg-[#f8f9fa] min-h-screen pt-12 pb-24">
+            <div className="max-w-7xl mx-auto px-4 md:px-6">
                 {/* Breadcrumbs & Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#9f8170]">
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
                             <Link to="/" className="hover:text-primary transition-colors">Home</Link>
                             <span>/</span>
-                            <span className="text-primary italic">Catalogue</span>
+                            <span className="text-primary italic">Products</span>
                         </div>
-                        <h1 className="text-6xl font-black text-primary tracking-tighter">
-                            {currentCategory ? categories.find(c => c.slug === currentCategory)?.name : 'All Collections'}
+                        <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
+                            {currentCategory ? categories.find(c => c.slug === currentCategory)?.name : 'All Products'}
                         </h1>
                     </div>
 
                     {/* View & Sort Actions */}
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center bg-white border border-[#e5e5d1] rounded-2xl p-1 shadow-sm">
+                        <div className="flex items-center bg-white border border-gray-100 rounded-xl p-1 shadow-sm">
                             <button
                                 onClick={() => setViewMode('grid')}
-                                className={`p-3 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'}`}
+                                className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'}`}
                             >
                                 <LayoutGrid size={18} />
                             </button>
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`p-3 rounded-xl transition-all ${viewMode === 'list' ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'}`}
+                                className={`p-2.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'}`}
                             >
                                 <StretchHorizontal size={18} />
                             </button>
                         </div>
-                        <button className="flex items-center gap-3 px-6 py-4 bg-white border border-[#e5e5d1] rounded-2xl text-xs font-black uppercase tracking-widest text-primary hover:border-[#c19a6b] transition-all group shadow-sm">
-                            <SlidersHorizontal size={16} className="text-[#c19a6b]" />
-                            Refine
+                        <button className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-100 rounded-xl text-xs font-bold uppercase tracking-widest text-gray-600 hover:border-primary transition-all shadow-sm">
+                            <Filter size={16} className="text-primary" />
+                            Filter
                         </button>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
                     {/* Sidebar Filters */}
-                    <aside className="hidden lg:block space-y-12 sticky top-32 h-fit">
+                    <aside className="hidden lg:block space-y-10 sticky top-32 h-fit">
                         {/* Category Filter */}
-                        <div className="space-y-6">
-                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#c19a6b]">Categories</h4>
-                            <div className="space-y-3">
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Categories</h4>
+                            <div className="space-y-1">
                                 <button
                                     onClick={() => handleCategoryChange('')}
-                                    className={`w-full text-left py-2 px-4 rounded-xl text-sm font-bold transition-all ${!currentCategory ? 'bg-[#c19a6b10] text-primary border-l-4 border-[#c19a6b]' : 'text-gray-400 hover:bg-white'}`}
+                                    className={`w-full text-left py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${!currentCategory ? 'bg-white text-primary border border-gray-100 shadow-sm' : 'text-gray-500 hover:text-primary hover:bg-white'}`}
                                 >
                                     All Products
                                 </button>
@@ -126,7 +126,7 @@ const ProductListing = () => {
                                     <button
                                         key={cat._id}
                                         onClick={() => handleCategoryChange(cat.slug)}
-                                        className={`w-full text-left py-2 px-4 rounded-xl text-sm font-bold transition-all ${currentCategory === cat.slug ? 'bg-[#c19a6b10] text-primary border-l-4 border-[#c19a6b]' : 'text-gray-400 hover:bg-white'}`}
+                                        className={`w-full text-left py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${currentCategory === cat.slug ? 'bg-white text-primary border border-gray-100 shadow-sm' : 'text-gray-500 hover:text-primary hover:bg-white'}`}
                                     >
                                         {cat.name}
                                     </button>
@@ -134,17 +134,16 @@ const ProductListing = () => {
                             </div>
                         </div>
 
-                        {/* Aesthetic Divider */}
-                        <div className="h-px bg-gradient-to-r from-transparent via-[#e5e5d1] to-transparent"></div>
+                        <div className="h-px bg-gray-100"></div>
 
-                        {/* Price Range Placeholder */}
+                        {/* Price Range */}
                         <div className="space-y-6">
-                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#c19a6b]">Price Range</h4>
-                            <div className="px-2">
-                                <div className="h-1 bg-gray-100 rounded-full relative">
-                                    <div className="absolute inset-x-0 h-full bg-[#c19a6b] rounded-full"></div>
-                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-[#c19a6b] rounded-full shadow-lg"></div>
-                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-[#c19a6b] rounded-full shadow-lg"></div>
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Price Range</h4>
+                            <div className="px-1">
+                                <div className="h-1 bg-gray-50 rounded-full relative">
+                                    <div className="absolute inset-x-0 h-full bg-primary/20 rounded-full"></div>
+                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-primary rounded-full shadow-md"></div>
+                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-primary rounded-full shadow-md"></div>
                                 </div>
                                 <div className="flex items-center justify-between mt-4 text-[10px] font-black uppercase text-gray-400 tracking-widest">
                                     <span>₹ 0</span>
@@ -154,50 +153,50 @@ const ProductListing = () => {
                         </div>
                     </aside>
 
-                    {/* Main Product Grid/List */}
-                    <div className="lg:col-span-3 space-y-16">
+                    {/* Main Content */}
+                    <div className="lg:col-span-3 space-y-12">
                         {loading ? (
-                            <div className={`grid gap-10 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                            <div className={`grid gap-8 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                                 {Array(6).fill(0).map((_, i) => (
-                                    <div key={i} className="animate-pulse space-y-6">
-                                        <div className="aspect-[4/5] bg-white border border-[#e5e5d1]/30 rounded-[2.5rem]"></div>
-                                        <div className="h-6 bg-gray-100 rounded-full w-2/3"></div>
-                                        <div className="h-4 bg-gray-50 rounded-full w-1/3"></div>
+                                    <div key={i} className="animate-pulse space-y-4">
+                                        <div className="aspect-[4/5] bg-white border border-gray-50 rounded-2xl"></div>
+                                        <div className="h-4 bg-gray-50 rounded-full w-2/3"></div>
+                                        <div className="h-3 bg-gray-50 rounded-full w-1/3"></div>
                                     </div>
                                 ))}
                             </div>
                         ) : products.length > 0 ? (
                             <>
-                                <div className={`grid gap-x-10 gap-y-16 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                                <div className={`grid gap-x-8 gap-y-12 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                                     {products.map((product) => (
                                         <Link
                                             key={product._id}
                                             to={`/products/${product.slug}`}
-                                            className={`group ${viewMode === 'list' ? 'flex flex-col md:flex-row gap-8 items-center bg-white p-8 rounded-[2.5rem] border border-[#e5e5d1]/30 hover:shadow-2xl transition-all duration-700' : 'space-y-6'}`}
+                                            className={`group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 ${viewMode === 'list' ? 'flex flex-col md:flex-row gap-6 p-6' : 'flex flex-col'}`}
                                         >
-                                            <div className={`relative overflow-hidden bg-white border border-[#e5e5d1]/30 rounded-[2.5rem] group-hover:shadow-2xl group-hover:-translate-y-2 transition-all duration-700 ${viewMode === 'list' ? 'w-full md:w-64 aspect-square shrink-0' : 'aspect-[4/5]'}`}>
+                                            <div className={`relative overflow-hidden bg-gray-50 ${viewMode === 'list' ? 'w-full md:w-48 aspect-square rounded-xl shrink-0' : 'aspect-[4/5]'}`}>
                                                 <img
-                                                    src={product.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1999'}
+                                                    src={product.images?.[0]}
                                                     alt={product.title}
-                                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                 />
-                                                <div className="absolute top-6 right-6 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                                                    <div className="w-12 h-12 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center text-[#c19a6b] shadow-xl">
-                                                        <ArrowUpRight size={20} />
+                                                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="w-10 h-10 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-primary shadow-sm">
+                                                        <ArrowUpRight size={18} />
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div className={`space-y-2 ${viewMode === 'list' ? 'flex-1 py-4 text-center md:text-left' : ''}`}>
-                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#c19a6b]">New In Store</p>
-                                                <h3 className="text-xl font-black text-primary tracking-tight group-hover:text-[#c19a6b] transition-colors line-clamp-2">{product.title}</h3>
+                                            <div className={`p-5 space-y-2 ${viewMode === 'list' ? 'flex-1 p-0' : ''}`}>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Store Collection</p>
+                                                <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors line-clamp-1">{product.title}</h3>
                                                 {viewMode === 'list' && (
-                                                    <p className="text-sm text-[#9f8170] font-medium leading-relaxed italic mt-4 mb-6">{product.description?.substring(0, 150)}...</p>
+                                                    <p className="text-xs text-gray-500 font-medium leading-relaxed line-clamp-2 mt-2 mb-4">{product.description}</p>
                                                 )}
-                                                <div className="flex items-center gap-3 pt-2">
-                                                    <span className="text-lg font-black text-primary">₹ {product.pricing?.min_price}</span>
+                                                <div className="flex items-baseline gap-2 pt-1">
+                                                    <span className="text-lg font-black text-gray-900">₹{product.pricing?.min_price}</span>
                                                     {product.pricing?.max_price > product.pricing?.min_price && (
-                                                        <span className="text-xs font-bold text-gray-400 line-through italic">₹ {product.pricing.max_price}</span>
+                                                        <span className="text-[10px] font-bold text-gray-300 line-through">₹{product.pricing.max_price}</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -206,25 +205,25 @@ const ProductListing = () => {
                                 </div>
 
                                 {/* Pagination */}
-                                <div className="flex items-center justify-between pt-20 border-t border-[#e5e5d1]/30">
-                                    <p className="text-xs font-black uppercase tracking-widest text-gray-400">
-                                        Showing <span className="text-primary">{products.length}</span> of <span className="text-primary">{meta.total}</span> products
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-12 border-t border-gray-100">
+                                    <p className="text-xs font-bold text-gray-400">
+                                        Showing <span className="text-gray-900">{products.length}</span> of <span className="text-gray-900">{meta.total}</span> products
                                     </p>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-3">
                                         <button
                                             onClick={() => handlePageChange(currentPage - 1)}
                                             disabled={currentPage === 1}
-                                            className="px-6 py-4 bg-white border border-[#e5e5d1] rounded-2xl text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2 hover:border-[#c19a6b] disabled:opacity-20 disabled:hover:border-[#e5e5d1] transition-all"
+                                            className="px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2 hover:border-primary hover:text-primary disabled:opacity-30 disabled:hover:border-gray-200 disabled:hover:text-gray-500 transition-all"
                                         >
                                             <ChevronLeft size={16} /> Previous
                                         </button>
-                                        <div className="w-12 h-12 flex items-center justify-center bg-primary text-white rounded-2xl font-black text-xs">
+                                        <div className="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-xl font-black text-xs">
                                             {currentPage}
                                         </div>
                                         <button
                                             onClick={() => handlePageChange(currentPage + 1)}
                                             disabled={currentPage * meta.limit >= meta.total}
-                                            className="px-6 py-4 bg-white border border-[#e5e5d1] rounded-2xl text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2 hover:border-[#c19a6b] disabled:opacity-20 disabled:hover:border-[#e5e5d1] transition-all"
+                                            className="px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2 hover:border-primary hover:text-primary disabled:opacity-30 disabled:hover:border-gray-200 disabled:hover:text-gray-500 transition-all"
                                         >
                                             Next <ChevronRight size={16} />
                                         </button>
@@ -232,17 +231,17 @@ const ProductListing = () => {
                                 </div>
                             </>
                         ) : (
-                            <div className="py-40 text-center space-y-8">
-                                <div className="w-24 h-24 bg-white rounded-[2rem] border border-[#e5e5d1] flex items-center justify-center text-[#c19a6b] mx-auto shadow-sm">
-                                    <Search size={40} className="opacity-20" />
+                            <div className="py-24 text-center space-y-6">
+                                <div className="w-20 h-20 bg-white rounded-2xl border border-gray-100 flex items-center justify-center text-gray-300 mx-auto shadow-sm">
+                                    <Search size={32} />
                                 </div>
-                                <div className="space-y-2">
-                                    <h3 className="text-3xl font-black text-primary tracking-tighter italic serif">No match found</h3>
-                                    <p className="text-sm text-[#9f8170] font-medium italic">Try refining your selection or browsing other categories.</p>
+                                <div className="space-y-1">
+                                    <h3 className="text-2xl font-bold text-gray-900">No products found</h3>
+                                    <p className="text-sm text-gray-400 font-medium">Try changing your filters or search term.</p>
                                 </div>
                                 <button
                                     onClick={() => handleCategoryChange('')}
-                                    className="px-8 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all"
+                                    className="px-8 py-3.5 bg-primary text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all"
                                 >
                                     Clear all Filters
                                 </button>

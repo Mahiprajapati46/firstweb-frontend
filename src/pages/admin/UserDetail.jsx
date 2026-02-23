@@ -169,7 +169,7 @@ const UserDetail = () => {
                                     <h2 className="text-2xl font-black text-gray-900">{user.full_name || 'Unknown User'}</h2>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${user.status === 'ACTIVE' ? 'bg-green-50 text-green-600' :
-                                                user.status === 'BLOCKED' ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-600'
+                                            user.status === 'BLOCKED' ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-600'
                                             }`}>
                                             {user.status === 'ACTIVE' ? <CheckCircle2 size={12} /> :
                                                 user.status === 'BLOCKED' ? <XCircle size={12} /> : <AlertTriangle size={12} />}
@@ -198,6 +198,12 @@ const UserDetail = () => {
                                 <div className="flex items-center gap-2 text-primary font-bold">
                                     <Phone size={16} className="text-gray-300" />
                                     {user.phone || 'Not provided'}
+                                    {user.phone_source === 'MERCHANT_PROFILE' && (
+                                        <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter ml-1">Business</span>
+                                    )}
+                                    {user.phone_source === 'SHIPPING_ADDRESS' && (
+                                        <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter ml-1">Address</span>
+                                    )}
                                     {user.phone_verified && <CheckCircle2 size={14} className="text-green-500" />}
                                 </div>
                             </div>
