@@ -35,16 +35,13 @@ const Inventory = () => {
             });
 
             const rawStock = response.data || [];
-
-            // Map the populated backend structure to the flat list the UI expects
             const formattedStock = rawStock.map(item => ({
                 ...item,
-                variant_id: item.variant_id?._id || item.variant_id, // Ensure ID is extracted if populated
-                product_title: item.variant_id?.product_id?.title || 'Unknown Product',
+                variant_id: item.variant_id?._id || item.variant_id,
+                product_title: item.variant_id?.product_id?.title || 'Unknown Asset',
                 variant_image: item.variant_id?.images?.[0] || '',
                 sku: item.variant_id?.sku || 'NO-SKU',
                 attributes: item.variant_id?.attributes || {},
-                // Stock values are directly on the inventory record now
                 stock: item.stock || 0,
                 reserved_stock: item.reserved_stock || 0,
                 available_stock: item.available_stock || 0
@@ -52,7 +49,6 @@ const Inventory = () => {
 
             setStock(formattedStock);
             setTotalPages(response.pagination?.pages || 1);
-
         } catch (error) {
             console.error('Stock fetch error:', error);
             toast.error('Failed to load stock data');
@@ -67,31 +63,29 @@ const Inventory = () => {
             const reserved = parseInt(newReservedValue);
 
             if (isNaN(quantity) || quantity < 0) {
-                toast.error('Please enter a valid total stock');
+                toast.error('Invalid total stock');
                 return;
             }
             if (isNaN(reserved) || reserved < 0) {
-                toast.error('Please enter a valid reserved stock');
+                toast.error('Invalid reserved stock');
                 return;
             }
             if (reserved > quantity) {
-                toast.error('Reserved stock cannot exceed total stock');
+                toast.error('Reserved exceeds total');
                 return;
             }
 
-            // Use the dedicated Stock Update API
             await merchantApi.updateVariantStock(variantId, {
                 stock: quantity,
                 reserved_stock: reserved,
                 reason: 'Merchant manual update via Inventory Page'
             });
 
-            toast.success('Stock updated successfully');
+            toast.success('Inventory synchronized');
             setEditingId(null);
-            fetchStock(); // Refresh data
+            fetchStock();
         } catch (error) {
-            console.error(error);
-            toast.error(error.message || 'Update failed');
+            toast.error(error.message || 'Synchronization failed');
         }
     };
 
@@ -101,60 +95,55 @@ const Inventory = () => {
     );
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="space-y-8 animate-in fade-in duration-700">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Stock Management</h1>
-                    <p className="text-slate-500 mt-1 font-medium">Monitor and update inventory levels for all variants.</p>
+                    <h1 className="text-2xl font-bold text-primary tracking-tight">Supply Chain Inventory</h1>
+                    <p className="text-gray-500 mt-1">Manage and synchronize your physical/digital assets across the network.</p>
                 </div>
-                <Button
-                    onClick={fetchStock}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                >
-                    <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
-                    Refresh
-                </Button>
-            </div>
-
-            {/* Search */}
-            <div className="relative group max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={20} />
-                <input
-                    type="text"
-                    placeholder="Search by SKU or Product Name..."
-                    className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-100 rounded-2xl text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all shadow-sm"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                <div className="flex items-center gap-4">
+                    <div className="relative group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-accent transition-colors" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Identify by SKU or Title..."
+                            className="pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all shadow-sm w-72"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Stock Table */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden">
+            <div className="card-premium overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-100">
-                                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest w-1/3">Product & Variant</th>
-                                <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">SKU</th>
-                                <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Available</th>
-                                <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Reserved</th>
-                                <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Total Stock</th>
-                                <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                            <tr className="bg-gray-50/50 border-b border-gray-100">
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Asset Definition</th>
+                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Reference</th>
+                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Available</th>
+                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Reserved</th>
+                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Total Supply</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Operations</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody className="divide-y divide-gray-50 font-medium">
                             {loading && stock.length === 0 ? (
                                 Array(5).fill(0).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
-                                        <td colSpan="6" className="px-8 py-8"><div className="h-4 bg-slate-100 rounded w-1/3"></div></td>
+                                        <td colSpan="6" className="px-8 py-8"><div className="h-4 bg-gray-50 rounded w-1/4"></div></td>
                                     </tr>
                                 ))
                             ) : filteredStock.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="px-8 py-20 text-center">
-                                        <p className="text-slate-400 font-bold italic">No variants found.</p>
+                                        <div className="flex flex-col items-center gap-4 opacity-30">
+                                            <Package size={48} className="text-primary" />
+                                            <p className="text-sm font-bold text-primary uppercase tracking-widest">No assets identified</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
@@ -162,69 +151,60 @@ const Inventory = () => {
                                     const isEditing = editingId === (item.variant_id);
 
                                     return (
-                                        <tr key={item.variant_id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-8 py-5">
+                                        <tr key={item.variant_id} className="hover:bg-gray-50/30 transition-colors group">
+                                            <td className="px-8 py-6">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden flex-shrink-0 shadow-sm">
+                                                    <div className="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 shadow-sm group-hover:shadow-md transition-all flex items-center justify-center">
                                                         {item.variant_image ? (
                                                             <img src={item.variant_image} alt="" className="w-full h-full object-cover" />
                                                         ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                                                <Package size={20} />
-                                                            </div>
+                                                            <Package size={20} className="text-gray-300" />
                                                         )}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <h3 className="text-sm font-black text-slate-900 truncate">{item.product_title || 'Unknown Product'}</h3>
-                                                        <div className="flex flex-wrap gap-2 mt-1">
+                                                        <h3 className="text-sm font-black text-primary truncate leading-tight">{item.product_title}</h3>
+                                                        <div className="flex flex-wrap gap-1.5 mt-1.5">
                                                             {Object.entries(item.attributes || {}).map(([key, value]) => (
-                                                                <span key={key} className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded uppercase border border-slate-200">
-                                                                    {key}: {value}
+                                                                <span key={key} className="text-[9px] font-black text-gray-400 bg-gray-50 px-2 py-0.5 rounded leading-none uppercase tracking-tighter">
+                                                                    {key} · {value}
                                                                 </span>
                                                             ))}
                                                         </div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-5">
-                                                <span className="text-xs font-mono font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded">
-                                                    #{item.sku || 'NO-SKU'}
+                                            <td className="px-6 py-6">
+                                                <span className="text-[10px] font-mono font-black text-gray-400 bg-gray-50 px-2 py-1 rounded">
+                                                    #{item.sku}
                                                 </span>
                                             </td>
-
-                                            {/* Available Stock (Calculated) */}
-                                            <td className="px-6 py-5 text-center">
-                                                <span className={`text-sm font-bold ${isEditing
-                                                    ? ((parseInt(newStockValue || 0) - parseInt(newReservedValue || 0)) <= 5 ? 'text-amber-600' : 'text-emerald-600')
-                                                    : (item.available_stock <= 5 ? 'text-amber-600' : 'text-emerald-600')
+                                            <td className="px-6 py-6 text-center">
+                                                <span className={`text-sm font-black ${isEditing
+                                                    ? ((parseInt(newStockValue || 0) - parseInt(newReservedValue || 0)) <= 5 ? 'text-amber-500' : 'text-green-500')
+                                                    : (item.available_stock <= 5 ? 'text-amber-500' : 'text-green-500')
                                                     }`}>
                                                     {isEditing ? (parseInt(newStockValue || 0) - parseInt(newReservedValue || 0)) : item.available_stock}
                                                 </span>
                                             </td>
-
-                                            {/* Reserved Stock (Editable) */}
-                                            <td className="px-6 py-5 text-center">
+                                            <td className="px-6 py-6 text-center">
                                                 {isEditing ? (
                                                     <input
                                                         type="number"
-                                                        className="w-20 px-3 py-1.5 border-2 border-slate-200 rounded-lg text-sm font-bold focus:ring-4 focus:ring-slate-100 focus:border-slate-400 text-center"
+                                                        className="w-16 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-black text-center focus:ring-2 focus:ring-accent focus:border-accent outline-none"
                                                         value={newReservedValue}
                                                         onChange={(e) => setNewReservedValue(e.target.value)}
-                                                        placeholder="0"
                                                     />
                                                 ) : (
-                                                    <span className="text-sm font-bold text-slate-400">
+                                                    <span className="text-sm font-black text-gray-400">
                                                         {item.reserved_stock}
                                                     </span>
                                                 )}
                                             </td>
-
-                                            {/* Total Stock (Editable) */}
-                                            <td className="px-6 py-5 text-center">
+                                            <td className="px-6 py-6 text-center">
                                                 {isEditing ? (
                                                     <input
                                                         type="number"
-                                                        className="w-20 px-3 py-1.5 border-2 border-primary/20 rounded-lg text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary text-center"
+                                                        className="w-16 px-2 py-1 bg-white border border-accent rounded-lg text-xs font-black text-center focus:ring-2 focus:ring-accent outline-none"
                                                         value={newStockValue}
                                                         onChange={(e) => setNewStockValue(e.target.value)}
                                                         autoFocus
@@ -235,7 +215,7 @@ const Inventory = () => {
                                                     />
                                                 ) : (
                                                     <div className="flex items-center justify-center gap-2">
-                                                        <span className={`text-sm font-black ${item.stock <= 5 ? 'text-rose-600' : 'text-slate-900'}`}>
+                                                        <span className={`text-sm font-black ${item.stock <= 5 ? 'text-rose-500' : 'text-primary'}`}>
                                                             {item.stock}
                                                         </span>
                                                         {item.stock <= 5 && (
@@ -244,23 +224,20 @@ const Inventory = () => {
                                                     </div>
                                                 )}
                                             </td>
-
-                                            <td className="px-6 py-5 text-right">
+                                            <td className="px-8 py-6 text-right">
                                                 {isEditing ? (
-                                                    <div className="flex items-center justify-end gap-2">
+                                                    <div className="flex items-center justify-end gap-1">
                                                         <button
                                                             onClick={() => handleUpdateStock(item.variant_id)}
-                                                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                                                            title="Save"
+                                                            className="p-2 text-green-600 hover:bg-green-50 rounded-xl transition-all"
                                                         >
                                                             <Save size={18} />
                                                         </button>
                                                         <button
                                                             onClick={() => setEditingId(null)}
-                                                            className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-all"
-                                                            title="Cancel"
+                                                            className="p-2 text-gray-400 hover:bg-gray-100 rounded-xl transition-all"
                                                         >
-                                                            <ArrowUpDown size={18} />
+                                                            <RefreshCcw size={18} />
                                                         </button>
                                                     </div>
                                                 ) : (
@@ -270,8 +247,8 @@ const Inventory = () => {
                                                             setNewStockValue((item.stock).toString());
                                                             setNewReservedValue((item.reserved_stock).toString());
                                                         }}
-                                                        className="p-2 text-primary hover:bg-primary/5 rounded-lg transition-all"
-                                                        title="Update Stock"
+                                                        className="p-2 text-gray-400 hover:text-accent hover:bg-accent/5 rounded-xl transition-all"
+                                                        title="Synchronize"
                                                     >
                                                         <RefreshCcw size={18} />
                                                     </button>
@@ -288,39 +265,35 @@ const Inventory = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-4">
-                    <Button
-                        variant="outline"
-                        size="sm"
+                <div className="flex items-center justify-center gap-3 pt-4">
+                    <button
                         disabled={page === 1}
                         onClick={() => setPage(page - 1)}
-                        className="rounded-xl"
+                        className="p-2.5 rounded-xl border border-gray-100 bg-white text-primary disabled:opacity-30 hover:bg-gray-50 transition-all font-black text-xs uppercase tracking-widest"
                     >
-                        Previous
-                    </Button>
-                    <div className="flex items-center gap-1">
+                        Prev
+                    </button>
+                    <div className="flex gap-2">
                         {[...Array(totalPages)].map((_, i) => (
                             <button
                                 key={i + 1}
                                 onClick={() => setPage(i + 1)}
-                                className={`w-10 h-10 rounded-xl text-sm font-black transition-all ${page === i + 1
-                                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100'
+                                className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${page === i + 1
+                                    ? 'bg-primary text-white shadow-lg'
+                                    : 'bg-white text-gray-400 border border-gray-100 hover:border-accent hover:text-accent'
                                     }`}
                             >
                                 {i + 1}
                             </button>
                         ))}
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
+                    <button
                         disabled={page === totalPages}
                         onClick={() => setPage(page + 1)}
-                        className="rounded-xl"
+                        className="p-2.5 rounded-xl border border-gray-100 bg-white text-primary disabled:opacity-30 hover:bg-gray-50 transition-all font-black text-xs uppercase tracking-widest"
                     >
                         Next
-                    </Button>
+                    </button>
                 </div>
             )}
         </div>

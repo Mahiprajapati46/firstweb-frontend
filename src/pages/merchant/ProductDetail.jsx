@@ -126,7 +126,7 @@ const ProductDetail = () => {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {product.images.map((img, idx) => (
                                     <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-slate-100 bg-slate-50 group relative">
-                                        <img src={img.url} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                                        <img src={img} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
                                     </div>
                                 ))}
                             </div>
@@ -152,6 +152,7 @@ const ProductDetail = () => {
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50/50">
                                     <tr>
+                                        <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase">Asset</th>
                                         <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase">SKU</th>
                                         <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase">Attributes</th>
                                         <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase text-right">Price</th>
@@ -161,13 +162,22 @@ const ProductDetail = () => {
                                 <tbody className="divide-y divide-slate-50">
                                     {variants.length === 0 ? (
                                         <tr>
-                                            <td colSpan="4" className="px-6 py-8 text-center text-slate-500 text-sm">
+                                            <td colSpan="5" className="px-6 py-8 text-center text-slate-500 text-sm">
                                                 No variants added yet.
                                             </td>
                                         </tr>
                                     ) : (
                                         variants.map(v => (
                                             <tr key={v._id} className="hover:bg-slate-50/50">
+                                                <td className="px-6 py-4">
+                                                    <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden shrink-0 flex items-center justify-center">
+                                                        {v.images?.[0] ? (
+                                                            <img src={v.images[0]} alt="" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <ImageIcon size={16} className="text-slate-200" />
+                                                        )}
+                                                    </div>
+                                                </td>
                                                 <td className="px-6 py-4 text-sm font-bold text-slate-700">{v.sku}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-wrap gap-1">

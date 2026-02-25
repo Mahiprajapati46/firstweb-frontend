@@ -64,6 +64,7 @@ import CustomerTerms from './pages/customer/Terms';
 import CustomerContact from './pages/customer/Contact';
 import CustomerHelpCenter from './pages/customer/HelpCenter';
 import CustomerReturns from './pages/customer/Returns';
+import CustomerCoupons from './pages/customer/Coupons';
 
 function App() {
     return (
@@ -87,6 +88,7 @@ function App() {
                     <Route path="/contact" element={<CustomerLayout><CustomerContact /></CustomerLayout>} />
                     <Route path="/help-center" element={<CustomerLayout><CustomerHelpCenter /></CustomerLayout>} />
                     <Route path="/returns" element={<CustomerLayout><CustomerReturns /></CustomerLayout>} />
+                    <Route path="/coupons" element={<CustomerLayout><CustomerCoupons /></CustomerLayout>} />
 
                     <Route
                         path="/cart"

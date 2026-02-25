@@ -314,7 +314,7 @@ const Checkout = () => {
                                         {preview?.items.map((item, i) => (
                                             <div key={i} className="p-4 flex items-center gap-4 border-b border-gray-50 last:border-0">
                                                 <div className="w-12 h-12 bg-gray-50 rounded-lg overflow-hidden shrink-0">
-                                                    <img src={item.product?.images?.[0]} className="w-full h-full object-cover" alt="" />
+                                                    <img src={item.images?.[0] || item.product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30'} className="w-full h-full object-cover" alt="" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="text-sm font-bold text-gray-900 truncate">{item.product_name}</h4>

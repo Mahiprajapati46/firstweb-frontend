@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
     Search, ShoppingBag, User, Menu, X,
-    ChevronDown, Store, LogOut, Wallet, Package,
+    ChevronDown, Store, LogOut, Wallet, Package, Ticket,
     Instagram, Twitter, Facebook
 } from 'lucide-react';
 import customerApi from '../api/customer';
@@ -205,6 +205,9 @@ const CustomerLayout = ({ children }) => {
                         <Link to="/products" className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 hover:text-accent transition-colors">
                             Marketplace
                         </Link>
+                        <Link to="/coupons" className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 hover:text-accent transition-colors flex items-center gap-1.5">
+                            <Ticket size={14} className="text-accent" /> Offers
+                        </Link>
 
                         <div className="relative group" ref={categoryRef}>
                             <button
@@ -293,6 +296,14 @@ const CustomerLayout = ({ children }) => {
                                     className="block px-4 py-3 text-[13px] font-semibold text-primary rounded-2xl hover:bg-[#fdfaf5] hover:text-[#c19a6b] transition-all mb-1"
                                 >
                                     Shop All Products
+                                </Link>
+
+                                <Link
+                                    to="/coupons"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="flex items-center gap-2.5 px-4 py-3 text-[13px] font-semibold text-accent rounded-2xl hover:bg-[#fdfaf5] transition-all mb-1"
+                                >
+                                    <Ticket size={16} /> Exclusive Offers
                                 </Link>
 
                                 {categories.length > 0 && (

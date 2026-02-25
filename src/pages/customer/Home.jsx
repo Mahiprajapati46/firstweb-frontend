@@ -113,18 +113,21 @@ const Home = () => {
     const navigate = useNavigate();
     const [categories, setCategories] = useState([]);
     const [featuredProducts, setFeaturedProducts] = useState([]);
+    const [coupons, setCoupons] = useState([]);
     const [loading, setLoading] = useState(true);
     const [visibleSection, setVisibleSection] = useState('');
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [catRes, prodRes] = await Promise.all([
+                const [catRes, prodRes, couponRes] = await Promise.all([
                     customerApi.getCategoriesTree(),
-                    customerApi.getProducts({ limit: 8 })
+                    customerApi.getProducts({ limit: 8 }),
+                    customerApi.getCoupons()
                 ]);
                 setCategories(catRes.data || []);
                 setFeaturedProducts(prodRes.data?.products || []);
+                setCoupons(couponRes.data?.slice(0, 3) || []);
             } catch (e) {
                 toast.error('Failed to load content');
             } finally {
@@ -223,22 +226,32 @@ const Home = () => {
                                     to={`/products?category=${cat.slug}`}
                                     className="group relative h-72 bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-2"
                                 >
-                                    <div className="absolute inset-0 bg-gray-50 group-hover:scale-110 transition-transform duration-700" />
-                                    <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors duration-500" />
+                                    <div className="absolute inset-0 bg-gray-50 group-hover:scale-110 transition-transform duration-700">
+                                        {cat.image && (
+                                            <img
+                                                src={cat.image}
+                                                alt={cat.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        )}
+                                    </div>
+                                    <div className={`absolute inset-0 transition-colors duration-500 ${cat.image ? 'bg-black/20 group-hover:bg-black/40' : 'bg-primary/0 group-hover:bg-primary/5'}`} />
 
                                     <div className="absolute inset-x-8 bottom-8 flex items-end justify-between z-10">
                                         <div className="space-y-2">
-                                            <p className="text-[10px] font-black text-accent uppercase tracking-widest">{cat.slug}</p>
-                                            <h3 className="text-2xl font-black text-primary tracking-tighter">{cat.name}</h3>
+                                            <p className={`text-[10px] font-black uppercase tracking-widest ${cat.image ? 'text-white' : 'text-accent'}`}>{cat.slug}</p>
+                                            <h3 className={`text-2xl font-black tracking-tighter ${cat.image ? 'text-white' : 'text-primary'}`}>{cat.name}</h3>
                                         </div>
                                         <div className="w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
                                             <ArrowRight size={20} />
                                         </div>
                                     </div>
 
-                                    <div className="absolute top-8 left-8">
-                                        <span className="text-6xl font-black text-primary/5 select-none">{cat.name?.charAt(0)}</span>
-                                    </div>
+                                    {!cat.image && (
+                                        <div className="absolute top-8 left-8">
+                                            <span className="text-6xl font-black text-primary/5 select-none">{cat.name?.charAt(0)}</span>
+                                        </div>
+                                    )}
                                 </Link>
                             ))
                         )}
@@ -274,6 +287,51 @@ const Home = () => {
                     )}
                 </div>
             </section>
+
+            {/* ─── Exclusive Offers Section (NEW) ─── */}
+            {coupons.length > 0 && (
+                <section className="section-spacing bg-white">
+                    <div className="premium-container">
+                        <div className="flex flex-col items-center text-center mb-16 px-2">
+                            <span className="text-accent text-[11px] font-black uppercase tracking-[0.4em] mb-4">Limited Availability</span>
+                            <h2 className="text-3xl md:text-5xl font-black text-primary tracking-tighter">Current Exclusive Offers</h2>
+                            <p className="text-primary/40 text-sm md:text-base font-medium max-w-xl mt-6">
+                                Claim verified vouchers and premium discounts from our marketplace partners.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                            {coupons.map(coupon => (
+                                <div key={coupon._id} className="transform hover:-translate-y-2 transition-transform duration-500">
+                                    <div className="bg-[#f8f9fa] border border-gray-100 p-8 rounded-[2rem] relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 p-8 opacity-5 text-primary group-hover:scale-110 transition-transform duration-700">
+                                            <Zap size={80} fill="currentColor" />
+                                        </div>
+                                        <div className="relative z-10">
+                                            <div className="inline-block bg-primary text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest mb-6">
+                                                {coupon.discount_type === 'PERCENTAGE' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`} OFF
+                                            </div>
+                                            <h3 className="text-2xl font-black text-primary mb-2">{coupon.code}</h3>
+                                            <p className="text-xs text-primary/40 font-bold uppercase tracking-tight mb-8">
+                                                Min Order: ₹{coupon.min_order_amount}
+                                            </p>
+                                            <Link to="/coupons" className="text-xs font-black text-accent uppercase tracking-widest flex items-center gap-2 group/btn">
+                                                View Offer <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex justify-center">
+                            <Link to="/coupons" className="btn-boutique-outline">
+                                See All Active Vouchers
+                            </Link>
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* ─── Partner CTA (Executive) ─── */}
             <section className="section-spacing">

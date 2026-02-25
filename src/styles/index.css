@@ -30,6 +30,10 @@
         @apply bg-white border border-gray-100 shadow-boutique rounded-xl transition-all duration-500 hover:shadow-boutique-hover hover:-translate-y-1 overflow-hidden;
     }
 
+    .card-premium {
+        @apply bg-white border border-gray-100 shadow-sm rounded-[2rem] transition-all duration-300;
+    }
+
     .btn-boutique-primary {
         @apply bg-primary text-white px-10 py-4 rounded-xl font-bold text-sm tracking-wide transition-all duration-300 hover:bg-secondary hover:shadow-xl active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2;
     }

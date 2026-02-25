@@ -262,7 +262,7 @@ const OrderDetail = () => {
         shipping_address_snapshot = {},
         payment = {},
         order_number = 'N/A',
-        createdAt,
+        created_at,
         status,
         sub_orders = []
     } = order;
@@ -284,7 +284,7 @@ const OrderDetail = () => {
                     </button>
                     <div className="text-right">
                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Order #{order_number}</p>
-                        <p className="text-xs font-medium text-gray-500">{new Date(createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        <p className="text-xs font-medium text-gray-500">{new Date(created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                     </div>
                 </div>
             </div>
@@ -383,7 +383,7 @@ const OrderDetail = () => {
                                         <div key={`${sub.merchant_id}-${i}`} className="p-6 flex items-center gap-6 hover:bg-gray-50/50 transition-colors">
                                             <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0">
                                                 <img
-                                                    src={item.product?.images?.[0]}
+                                                    src={item.images?.[0] || item.product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30'}
                                                     className="w-full h-full object-cover"
                                                     alt={item.product_name}
                                                 />
@@ -392,7 +392,17 @@ const OrderDetail = () => {
                                                 <Link to={`/products/${item.product?.slug || '#'}`} className="text-sm font-bold text-gray-900 hover:text-[#24b47e] transition-colors block truncate">
                                                     {item.product_name}
                                                 </Link>
-                                                <p className="text-xs text-gray-500 mt-1">Size: {item.variant_label}</p>
+                                                {item.variant_label ? (
+                                                    <p className="text-xs text-gray-500 mt-1">Variant: {item.variant_label}</p>
+                                                ) : item.variant?.attributes ? (
+                                                    <div className="flex flex-wrap gap-2 mt-1">
+                                                        {Object.entries(item.variant.attributes).map(([key, val]) => (
+                                                            <span key={key} className="text-[10px] text-gray-500 font-medium">
+                                                                {key}: {val}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : null}
                                                 <p className="text-xs text-gray-400 mt-0.5">Quantity: {item.quantity}</p>
                                             </div>
                                             <div className="text-right">

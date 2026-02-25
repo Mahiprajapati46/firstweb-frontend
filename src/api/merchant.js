@@ -128,7 +128,9 @@ const merchantApi = {
 
     createVariant: async (productId, data) => {
         try {
-            const response = await api.post(`/merchants/products/${productId}/variants`, data);
+            const response = await api.post(`/merchants/products/${productId}/variants`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
             return response.data;
         } catch (error) {
             throw error.response?.data || error;
@@ -137,7 +139,9 @@ const merchantApi = {
 
     updateVariant: async (variantId, data) => {
         try {
-            const response = await api.patch(`/merchants/variants/${variantId}`, data);
+            const response = await api.patch(`/merchants/variants/${variantId}`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
             return response.data;
         } catch (error) {
             throw error.response?.data || error;
@@ -173,34 +177,6 @@ const merchantApi = {
     },
 
     // Wallet
-    getWallet: async () => {
-        try {
-            const response = await api.get('/merchants/wallet/summary');
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || error;
-        }
-    },
-
-    getTransactions: async (params) => {
-        try {
-            const response = await api.get('/merchants/wallet/transactions', { params });
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || error;
-        }
-    },
-
-    requestWithdrawal: async (amount) => {
-        try {
-            const response = await api.post('/merchants/wallet/payout', { amount });
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || error;
-        }
-    },
-
-    // Wallet APIs
     getWallet: async () => {
         try {
             const response = await api.get('/merchants/wallet/summary');

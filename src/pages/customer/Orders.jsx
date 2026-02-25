@@ -85,9 +85,13 @@ const Orders = () => {
                             >
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                     <div className="flex items-center gap-4 md:gap-6">
-                                        {/* Simplified Icon/Image Placeholder */}
-                                        <div className="w-16 h-16 bg-gray-50 rounded-xl flex items-center justify-center text-primary border border-gray-100 shrink-0 group-hover:bg-primary/5 transition-colors">
-                                            <Package size={24} className="text-gray-400 group-hover:text-primary transition-colors" />
+                                        {/* Order Preview Image */}
+                                        <div className="w-16 h-16 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center text-primary border border-gray-100 shrink-0 group-hover:bg-primary/5 transition-colors">
+                                            {order.preview_image ? (
+                                                <img src={order.preview_image} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <Package size={24} className="text-gray-400 group-hover:text-primary transition-colors" />
+                                            )}
                                         </div>
 
                                         <div className="min-w-0">

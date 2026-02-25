@@ -267,7 +267,7 @@ const Cart = () => {
                                         {/* Image */}
                                         <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
                                             <img
-                                                src={item.product?.images?.[0]}
+                                                src={item.variant_id?.images?.[0] || item.product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30'}
                                                 alt={item.product?.title}
                                                 className="w-full h-full object-cover"
                                             />

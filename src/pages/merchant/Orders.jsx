@@ -40,7 +40,7 @@ const Orders = () => {
     const [stats, setStats] = useState({ ALL: 0 });
 
     useEffect(() => {
-        setPage(1); // Reset to page 1 when filter changes
+        setPage(1);
         fetchOrders(1);
     }, [filterStatus]);
 
@@ -74,42 +74,40 @@ const Orders = () => {
         );
     });
 
-    const statusCounts = stats;
-
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="space-y-8 animate-in fade-in duration-700">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Orders & Fulfillment</h1>
-                    <p className="text-slate-500 mt-1 font-medium italic lowercase">Manage your customer orders end-to-end.</p>
+                    <h1 className="text-2xl font-bold text-primary tracking-tight">Order Fulfillment</h1>
+                    <p className="text-gray-500 mt-1">Manage and track your customer transactions in real-time.</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <div className="flex items-center gap-4">
+                    <div className="relative group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-accent transition-colors" size={18} />
                         <input
                             type="text"
-                            placeholder="Search by ID, customer..."
+                            placeholder="Find by ID, customer..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                            className="pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all shadow-sm w-72"
                         />
                     </div>
                 </div>
             </div>
 
-            {/* Status Filters */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            {/* Status Tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-4 custom-scrollbar">
                 {['ALL', 'CONFIRMED', 'PACKED', 'SHIPPED', 'RETURN_REQUESTED'].map((status) => (
                     <button
                         key={status}
                         onClick={() => setFilterStatus(status)}
-                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === status
-                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                            : 'bg-white text-slate-400 hover:text-slate-900 border border-slate-100'
+                        className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap shadow-sm border ${filterStatus === status
+                            ? 'bg-primary text-white border-primary shadow-xl scale-[1.02]'
+                            : 'bg-white text-gray-400 hover:text-accent border-gray-100'
                             }`}
                     >
-                        {status} {statusCounts[status] !== undefined && `(${statusCounts[status]})`}
+                        {status} {stats[status] !== undefined && <span className={`ml-2 ${filterStatus === status ? 'text-accent' : 'text-gray-300'}`}>({stats[status]})</span>}
                     </button>
                 ))}
             </div>
@@ -118,15 +116,15 @@ const Orders = () => {
             <div className="space-y-4">
                 {loading ? (
                     Array(4).fill(0).map((_, i) => (
-                        <div key={i} className="h-28 bg-white rounded-3xl border border-slate-50 animate-pulse"></div>
+                        <div key={i} className="h-32 card-premium animate-pulse"></div>
                     ))
                 ) : filteredOrders.length === 0 ? (
-                    <div className="p-20 bg-white rounded-3xl border border-slate-100 text-center shadow-sm">
-                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mx-auto mb-4">
-                            <ShoppingCart size={32} />
+                    <div className="py-24 card-premium text-center">
+                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mx-auto mb-6 shadow-inner">
+                            <ShoppingCart size={40} />
                         </div>
-                        <p className="text-slate-500 font-bold">
-                            {searchQuery ? 'No orders match your search.' : 'No orders found in this category.'}
+                        <p className="text-sm font-black text-primary uppercase tracking-widest opacity-40">
+                            {searchQuery ? 'No cryptographic matches found' : 'Queue currently empty'}
                         </p>
                     </div>
                 ) : (
@@ -136,43 +134,49 @@ const Orders = () => {
                             <div
                                 key={order.sub_order_id}
                                 onClick={() => navigate(`/merchant/orders/${order.sub_order_id}`)}
-                                className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all cursor-pointer group"
+                                className="card-premium p-8 hover:border-accent hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden"
                             >
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                    <div className="flex items-center gap-6">
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border ${STATUS_CONFIG[order.status]?.color || 'bg-slate-50'}`}>
-                                            <StatusIcon size={24} />
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-accent/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2 group-hover:bg-accent/10 transition-colors"></div>
+
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
+                                    <div className="flex items-center gap-8">
+                                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg overflow-hidden ${STATUS_CONFIG[order.status]?.color || 'bg-gray-50'}`}>
+                                            {order.preview_image ? (
+                                                <img src={order.preview_image} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <StatusIcon size={28} />
+                                            )}
                                         </div>
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Order ID</span>
-                                                <span className="text-sm font-black text-slate-900">#{order.sub_order_id.slice(-6)}</span>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Protocol</span>
+                                                <span className="text-sm font-black text-primary">#{order.sub_order_id.slice(-8).toUpperCase()}</span>
                                             </div>
-                                            <h3 className="text-lg font-black text-slate-900 group-hover:text-primary transition-colors">
-                                                {order.customer?.name || 'Guest User'}
+                                            <h3 className="text-xl font-black text-primary leading-tight group-hover:text-accent transition-colors">
+                                                {order.customer?.name || 'Authorized Guest'}
                                             </h3>
-                                            <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                                                <div className="flex items-center gap-1">
-                                                    <Clock size={12} /> {new Date(order.created_at).toLocaleDateString()}
+                                            <div className="flex items-center gap-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                                <div className="flex items-center gap-2">
+                                                    <Clock size={12} className="text-accent" /> {new Date(order.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                                                 </div>
-                                                <div className="flex items-center gap-1">
-                                                    <Package size={12} /> {order.items_count || 0} Items
+                                                <div className="flex items-center gap-2">
+                                                    <Package size={12} className="text-accent" /> {order.items_count || 0} Assets
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-8 justify-between md:justify-end">
+                                    <div className="flex items-center gap-10 justify-between md:justify-end">
                                         <div className="text-right">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Subtotal</p>
-                                            <p className="text-2xl font-black text-slate-900">₹{order.total?.toLocaleString() || '0'}</p>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Settlement</p>
+                                            <p className="text-3xl font-black text-primary tracking-tight">₹{order.total?.toLocaleString() || '0'}</p>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className={`px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider ${STATUS_CONFIG[order.status]?.color}`}>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${STATUS_CONFIG[order.status]?.color}`}>
                                                 {STATUS_CONFIG[order.status]?.label || order.status}
                                             </div>
-                                            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all">
-                                                <ArrowUpRight size={20} />
+                                            <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-accent group-hover:text-white group-hover:shadow-lg group-hover:shadow-accent/20 transition-all">
+                                                <ChevronRight size={24} />
                                             </div>
                                         </div>
                                     </div>
@@ -183,19 +187,20 @@ const Orders = () => {
                 )}
             </div>
 
-            {/* Pagination Controls */}
+            {/* Pagination */}
             {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-4 pt-8">
                     <button
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation();
                             const newPage = Math.max(1, page - 1);
                             setPage(newPage);
                             fetchOrders(newPage);
                         }}
                         disabled={page === 1 || loading}
-                        className="px-6 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest text-slate-500 disabled:opacity-50 hover:bg-slate-50 transition-all"
+                        className="px-8 py-3 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest text-primary disabled:opacity-30 hover:bg-gray-50 transition-all shadow-sm"
                     >
-                        PREVIOUS
+                        Previous
                     </button>
                     <div className="flex items-center gap-2">
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
@@ -205,9 +210,9 @@ const Orders = () => {
                                     setPage(p);
                                     fetchOrders(p);
                                 }}
-                                className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${page === p
-                                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                    : 'bg-white text-slate-400 hover:text-slate-900 border border-slate-100'
+                                className={`w-11 h-11 rounded-xl text-xs font-black transition-all ${page === p
+                                    ? 'bg-primary text-white shadow-xl scale-110'
+                                    : 'bg-white text-gray-400 hover:text-accent border border-gray-100 hover:border-accent shadow-sm'
                                     }`}
                             >
                                 {p}
@@ -215,15 +220,16 @@ const Orders = () => {
                         ))}
                     </div>
                     <button
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation();
                             const newPage = Math.min(totalPages, page + 1);
                             setPage(newPage);
                             fetchOrders(newPage);
                         }}
                         disabled={page === totalPages || loading}
-                        className="px-6 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest text-slate-500 disabled:opacity-50 hover:bg-slate-50 transition-all"
+                        className="px-8 py-3 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest text-primary disabled:opacity-30 hover:bg-gray-50 transition-all shadow-sm"
                     >
-                        NEXT
+                        Next
                     </button>
                 </div>
             )}

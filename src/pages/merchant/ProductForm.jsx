@@ -9,7 +9,8 @@ import {
     Info,
     Layout,
     Lock,
-    Clock
+    Clock,
+    Plus
 } from 'lucide-react';
 import merchantApi from '../../api/merchant';
 import adminApi from '../../api/admin';
@@ -68,7 +69,7 @@ const ProductForm = () => {
                 setPreviewImages(product.images || []);
             }
         } catch (error) {
-            toast.error('Failed to load data');
+            toast.error('Failed to load product details');
         } finally {
             setLoading(false);
             setFetching(false);
@@ -77,7 +78,6 @@ const ProductForm = () => {
 
     const handleImageChange = (e) => {
         const files = Array.from(e.target.files);
-        // Track files with a unique ID for easier removal
         const newFiles = files.map(file => {
             file.previewUrl = URL.createObjectURL(file);
             return file;
@@ -109,10 +109,8 @@ const ProductForm = () => {
             data.append('title', formData.title);
             data.append('description', formData.description);
 
-            // Backend expects category_ids to be parsed from string if sent as multiple
             formData.category_ids.forEach(catId => data.append('category_ids', catId));
 
-            // Backend expects pricing fields
             data.append('pricing[min_price]', formData.pricing.min_price);
             data.append('pricing[max_price]', formData.pricing.max_price || formData.pricing.min_price);
             data.append('pricing[currency]', formData.pricing.currency);
@@ -126,20 +124,25 @@ const ProductForm = () => {
                 toast.success('Product updated successfully');
             } else {
                 await merchantApi.createProduct(data);
-                toast.success('Product initialized as DRAFT');
+                toast.success('Product created as DRAFT');
             }
             navigate('/merchant/products');
         } catch (error) {
-            toast.error(error.message || 'Saving failed');
+            toast.error(error.message || 'Failed to save product');
         } finally {
             setLoading(false);
         }
     };
 
-    if (fetching) return <div className="p-20 text-center font-black animate-pulse">Loading Product Data...</div>;
+    if (fetching) return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+            <div className="w-12 h-12 border-4 border-primary/10 border-t-primary rounded-full animate-spin"></div>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Loading Product Data...</p>
+        </div>
+    );
 
     return (
-        <div className="p-8 max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
             {/* Change Request Modal */}
             <ChangeRequestModal
                 isOpen={showChangeModal}
@@ -150,227 +153,259 @@ const ProductForm = () => {
                 categories={categories}
             />
 
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={() => navigate('/merchant/products')}
-                    className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-slate-900 transition-all shadow-sm"
-                >
-                    <ArrowLeft size={20} />
-                </button>
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-                        {isEdit ? 'Edit Product' : 'Create New Product'}
-                    </h1>
-                    <p className="text-slate-500 font-medium lowercase">
-                        {isEdit ? 'Update details for your catalog item.' : 'Set up your base product. You can add variants later.'}
-                    </p>
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+                <div className="flex items-center gap-6">
+                    <button
+                        onClick={() => navigate('/merchant/products')}
+                        className="w-14 h-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary/20 hover:shadow-xl transition-all group"
+                    >
+                        <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
+                    </button>
+                    <div>
+                        <h1 className="text-3xl font-bold text-primary tracking-tight">
+                            {isEdit ? 'Edit Product' : 'Create New Product'}
+                        </h1>
+                        <p className="text-gray-500 font-medium text-sm mt-1">
+                            {isEdit ? 'Update details for your catalog item.' : 'Set up your base product. You can add variants later.'}
+                        </p>
+                    </div>
                 </div>
+
+                {isEdit && ['APPROVED', 'PENDING'].includes(productStatus) && (
+                    <div className="bg-primary/5 border border-primary/10 rounded-2xl px-6 py-4 flex items-center gap-4">
+                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary italic font-black">
+                            {productStatus.charAt(0)}
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold text-primary uppercase tracking-widest whitespace-nowrap">Status: {productStatus}</p>
+                            <p className="text-[11px] text-gray-500 font-medium italic">Edit permissions restricted</p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {isEdit && ['APPROVED', 'PENDING'].includes(productStatus) && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex gap-4 animate-in fade-in zoom-in duration-500 shadow-sm">
-                    <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 shrink-0 shadow-inner">
-                        <Lock size={20} />
+                <div className="bg-primary rounded-[2rem] p-8 text-white flex flex-col md:flex-row items-center gap-8 shadow-2xl shadow-primary/20 relative overflow-hidden animate-in zoom-in duration-500">
+                    <div className="relative z-10 w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-accent italic font-black text-2xl">
+                        !
                     </div>
-                    <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-black text-amber-900 uppercase tracking-tight">
-                                {productStatus === 'APPROVED' ? 'Approved Product Protocol' : 'Submission Pending Protocol'}
-                            </h4>
-                            <span className="text-[10px] font-black bg-amber-200/50 text-amber-800 px-2 py-0.5 rounded-full uppercase tracking-tighter">Read Only</span>
-                        </div>
-                        <p className="text-xs text-amber-700 font-medium mt-1 leading-relaxed">
-                            High-level fields (Title, Description, Categories) are locked while the product is <span className="font-bold underline text-amber-900">{productStatus.toLowerCase()}</span>.
-                            Changes to these core attributes must be requested and approved by the administrator.
+                    <div className="relative z-10 flex-1 space-y-1">
+                        <h4 className="text-lg font-black tracking-tight italic">Product Locked</h4>
+                        <p className="text-white/60 text-sm font-medium leading-relaxed">
+                            Primary fields (Title, Categories, Content) are locked because the product is {productStatus === 'APPROVED' ? 'Approved' : 'Pending Verification'}.
+                            Please submit a change request to modify these fields.
                         </p>
-                        <div className="mt-4 flex gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setShowChangeModal(true)}
-                                className="px-5 py-2.5 bg-amber-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-black transition-all shadow-lg shadow-amber-900/20 active:scale-95 flex items-center gap-2"
-                            >
-                                <Clock size={14} />
-                                Request Modification
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => navigate('/merchant/requests')}
-                                className="px-5 py-2.5 bg-white border border-amber-200 text-amber-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-amber-100 transition-all active:scale-95"
-                            >
-                                View Request Status
-                            </button>
-                        </div>
                     </div>
+                    <div className="relative z-10 flex flex-col sm:flex-row gap-4">
+                        <button
+                            type="button"
+                            onClick={() => setShowChangeModal(true)}
+                            className="px-8 py-3 bg-accent text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-primary transition-all shadow-lg active:scale-95 flex items-center gap-2"
+                        >
+                            <Clock size={16} />
+                            Request Change
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/merchant/requests')}
+                            className="px-8 py-3 bg-white/10 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white/20 transition-all font-inter"
+                        >
+                            View Requests
+                        </button>
+                    </div>
+                    <Lock size={200} className="absolute -right-10 -bottom-10 text-white/5 rotate-12" />
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Basic Info */}
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden p-8 space-y-6">
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                            <Info size={16} />
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <div className="lg:col-span-2 space-y-10">
+                    {/* Basic Information */}
+                    <div className="card-premium p-10 space-y-8">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-primary border border-gray-100 italic font-black">
+                                01
+                            </div>
+                            <h2 className="text-xl font-black text-primary tracking-tight">Basic Details</h2>
                         </div>
-                        <h2 className="text-lg font-black text-slate-900 tracking-tight">Basic Information</h2>
-                    </div>
 
-                    <div className="space-y-4">
-                        <div className="relative">
-                            <Input
-                                label="Product Title"
-                                placeholder="e.g., Premium Leather Jacket"
-                                value={formData.title}
-                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                required
-                                disabled={['APPROVED', 'PENDING'].includes(productStatus)}
-                                className={['APPROVED', 'PENDING'].includes(productStatus) ? 'pr-10' : ''}
-                            />
-                            {['APPROVED', 'PENDING'].includes(productStatus) && (
-                                <div className="absolute right-3 top-[38px] text-amber-500 pointer-events-none group-hover:scale-110 transition-transform" title="Locked - Change Request Required">
-                                    <Lock size={16} />
-                                </div>
-                            )}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                                label="Minimum Price (INR)"
-                                type="number"
-                                placeholder="0.00"
-                                value={formData.pricing.min_price}
-                                onChange={(e) => setFormData({ ...formData, pricing: { ...formData.pricing, min_price: e.target.value } })}
-                                required
-                            />
-                            <Input
-                                label="Maximum Price (Optional)"
-                                type="number"
-                                placeholder="0.00"
-                                value={formData.pricing.max_price}
-                                onChange={(e) => setFormData({ ...formData, pricing: { ...formData.pricing, max_price: e.target.value } })}
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Description</label>
-                            <div className="relative">
-                                <textarea
-                                    className={`w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-sm focus:ring-4 focus:ring-primary/5 min-h-[150px] placeholder:text-slate-400 font-medium ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-60 cursor-not-allowed pr-10' : ''}`}
-                                    placeholder="Details about materials, features, and care instructions..."
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        <div className="space-y-6">
+                            <div className="relative group">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block">Product Title</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g., Premium Leather Jacket"
+                                    className={`w-full px-8 py-5 bg-gray-50/50 border border-gray-100 rounded-2xl text-sm font-black tracking-tight text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all placeholder:text-gray-300 ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-50 cursor-not-allowed pr-14' : ''}`}
+                                    value={formData.title}
+                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                     required
                                     disabled={['APPROVED', 'PENDING'].includes(productStatus)}
                                 />
                                 {['APPROVED', 'PENDING'].includes(productStatus) && (
-                                    <div className="absolute right-4 top-4 text-amber-500 pointer-events-none" title="Locked - Change Request Required">
-                                        <Lock size={16} />
-                                    </div>
+                                    <Lock size={18} className="absolute right-6 bottom-5 text-accent" />
                                 )}
                             </div>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Categories */}
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 space-y-6">
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                            <Layout size={16} />
-                        </div>
-                        <h2 className="text-lg font-black text-slate-900 tracking-tight">Categories</h2>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {categories.map((cat) => (
-                            <button
-                                key={cat._id}
-                                type="button"
-                                onClick={() => {
-                                    if (['APPROVED', 'PENDING'].includes(productStatus)) {
-                                        toast.error('Categories are locked. Submit a change request to modify.');
-                                        return;
-                                    }
-                                    const isSelected = formData.category_ids.includes(cat._id);
-                                    if (isSelected) {
-                                        setFormData({ ...formData, category_ids: formData.category_ids.filter(id => id !== cat._id) });
-                                    } else {
-                                        setFormData({ ...formData, category_ids: [...formData.category_ids, cat._id] });
-                                    }
-                                }}
-                                className={`relative px-4 py-3 rounded-2xl border transition-all text-xs font-bold text-left ${formData.category_ids.includes(cat._id)
-                                    ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
-                                    : 'bg-slate-50 border-transparent text-slate-600 hover:bg-slate-100'
-                                    } ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-60 cursor-not-allowed' : ''}`}
-                            >
-                                <span className="flex items-center justify-between">
-                                    {cat.name}
-                                    {['APPROVED', 'PENDING'].includes(productStatus) && <Lock size={12} className="text-amber-500" />}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Media */}
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                                <Upload size={16} />
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 block">Description</label>
+                                <div className="relative">
+                                    <textarea
+                                        className={`w-full px-8 py-6 bg-gray-50/50 border border-gray-100 rounded-3xl text-sm font-medium text-gray-600 leading-relaxed focus:ring-4 focus:ring-primary/5 focus:border-primary min-h-[200px] transition-all placeholder:text-gray-300 italic ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-50 cursor-not-allowed pr-14' : ''}`}
+                                        placeholder="Describe your product materials, features, and care instructions..."
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        required
+                                        disabled={['APPROVED', 'PENDING'].includes(productStatus)}
+                                    />
+                                    {['APPROVED', 'PENDING'].includes(productStatus) && (
+                                        <Lock size={18} className="absolute right-6 top-6 text-accent" />
+                                    )}
+                                </div>
                             </div>
-                            <h2 className="text-lg font-black text-slate-900 tracking-tight">Product Images</h2>
                         </div>
-                        <label className="cursor-pointer bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
-                            Upload Files
-                            <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
-                        </label>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {previewImages.map((img, idx) => (
-                            <div key={idx} className="aspect-square relative group bg-slate-100 rounded-3xl overflow-hidden border border-slate-200">
-                                <img src={img.url} alt="" className="w-full h-full object-cover" />
+                    {/* Media Gallery */}
+                    <div className="card-premium p-10 space-y-8">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-primary border border-gray-100">
+                                    <Upload size={20} />
+                                </div>
+                                <h2 className="text-xl font-black text-primary tracking-tight">Product Images</h2>
+                            </div>
+                            <label className="cursor-pointer bg-primary text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent hover:shadow-xl transition-all active:scale-95">
+                                Upload Images
+                                <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
+                            </label>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                            {previewImages.map((img, idx) => (
+                                <div key={idx} className="aspect-square relative w-full bg-gray-50 rounded-[2rem] overflow-hidden border border-gray-100">
+                                    <img src={img.url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeImage(idx)}
+                                        className="absolute top-4 right-4 p-2 bg-white/90 text-rose-600 rounded-xl shadow-xl hover:scale-110 active:scale-95 transition-all"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                    {!img.isLocal && (
+                                        <div className="absolute bottom-4 left-4 px-3 py-1 bg-accent text-white text-[8px] font-black uppercase tracking-widest rounded-lg shadow-lg">
+                                            Saved
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-[2rem] hover:border-accent hover:bg-accent/5 transition-all cursor-pointer group">
+                                <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 group-hover:text-accent group-hover:bg-white transition-all shadow-sm">
+                                    <Plus size={24} />
+                                </div>
+                                <span className="text-[10px] font-black text-gray-400 group-hover:text-accent uppercase tracking-[0.2em] mt-4">Add More</span>
+                                <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-10">
+                    {/* Pricing Specifications */}
+                    <div className="card-premium p-10 space-y-8">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-primary border border-gray-100 italic font-black">
+                                ₹
+                            </div>
+                            <h2 className="text-xl font-black text-primary tracking-tight">Pricing</h2>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Min Price (INR)</label>
+                                <input
+                                    type="number"
+                                    placeholder="0"
+                                    className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                    value={formData.pricing.min_price}
+                                    onChange={(e) => setFormData({ ...formData, pricing: { ...formData.pricing, min_price: e.target.value } })}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Max Price (Optional)</label>
+                                <input
+                                    type="number"
+                                    placeholder="0"
+                                    className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                    value={formData.pricing.max_price}
+                                    onChange={(e) => setFormData({ ...formData, pricing: { ...formData.pricing, max_price: e.target.value } })}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Taxonomy/Categories */}
+                    <div className="card-premium p-10 space-y-8">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-primary border border-gray-100">
+                                <Layout size={20} />
+                            </div>
+                            <h2 className="text-xl font-black text-primary tracking-tight">Categories</h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3">
+                            {categories.map((cat) => (
                                 <button
+                                    key={cat._id}
                                     type="button"
-                                    onClick={() => removeImage(idx)}
-                                    className="absolute top-2 right-2 p-1.5 bg-white/90 text-rose-600 rounded-lg opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                                    onClick={() => {
+                                        if (['APPROVED', 'PENDING'].includes(productStatus)) {
+                                            toast.error('Categories are locked. Request a change.');
+                                            return;
+                                        }
+                                        const isSelected = formData.category_ids.includes(cat._id);
+                                        if (isSelected) {
+                                            setFormData({ ...formData, category_ids: formData.category_ids.filter(id => id !== cat._id) });
+                                        } else {
+                                            setFormData({ ...formData, category_ids: [...formData.category_ids, cat._id] });
+                                        }
+                                    }}
+                                    className={`relative px-6 py-4 rounded-xl border-l-4 transition-all text-[11px] font-black uppercase tracking-widest text-left flex items-center justify-between group ${formData.category_ids.includes(cat._id)
+                                        ? 'bg-primary border-accent text-white shadow-xl shadow-primary/10'
+                                        : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-white hover:border-primary/20 hover:text-primary'
+                                        } ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                    <X size={14} />
+                                    {cat.name}
+                                    {formData.category_ids.includes(cat._id) ? (
+                                        <Check size={14} className="text-accent" />
+                                    ) : (
+                                        ['APPROVED', 'PENDING'].includes(productStatus) && <Lock size={12} className="text-accent opacity-50" />
+                                    )}
                                 </button>
-                                {!img.isLocal && (
-                                    <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-emerald-500/90 text-white text-[8px] font-black uppercase tracking-tighter rounded-full">
-                                        Saved
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                        <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-3xl hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group">
-                            <Upload size={24} className="text-slate-300 group-hover:text-primary transition-all" />
-                            <span className="text-[10px] font-black text-slate-400 group-hover:text-primary uppercase tracking-widest mt-2">New Media</span>
-                            <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
-                        </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Form Actions */}
+                    <div className="card-premium p-10 space-y-6 bg-gray-50/50 border-none">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className={`w-full py-6 rounded-[2rem] font-black uppercase tracking-[0.3em] text-xs transition-all shadow-2xl ${loading ? 'opacity-50' : 'bg-primary text-white hover:bg-black hover:-translate-y-1 shadow-primary/20'}`}
+                        >
+                            {loading ? 'Saving...' : isEdit ? 'Save Product' : 'Create Product'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/merchant/products')}
+                            className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-[9px] text-gray-400 hover:text-primary transition-all italic underline underline-offset-8 decoration-gray-200"
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </div>
-
-                {/* Footer Actions */}
-                <div className="flex items-center justify-end gap-4 pb-8">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => navigate('/merchant/products')}
-                        className="px-8 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100"
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        type="submit"
-                        loading={loading}
-                        className="px-10 py-3 bg-primary hover:bg-accent text-white rounded-2xl font-black shadow-xl shadow-primary/20 transition-all"
-                    >
-                        {isEdit ? 'Save Changes' : 'Initialize Product'}
-                    </Button>
-                </div>
-            </form >
-        </div >
+            </form>
+        </div>
     );
 };
 

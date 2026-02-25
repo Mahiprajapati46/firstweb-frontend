@@ -45,7 +45,7 @@ const Products = () => {
     const [selectedProduct, setSelectedProduct] = useState(null);
 
     useEffect(() => {
-        setPage(1); // Reset to first page when filter changes
+        setPage(1);
         fetchProducts(1);
     }, [filterStatus]);
 
@@ -66,7 +66,6 @@ const Products = () => {
             setTotalPages(response.pagination?.pages || 1);
             setStats(response.stats || { ALL: 0 });
 
-            // Also fetch categories if not already loaded
             if (categories.length === 0) {
                 const catResponse = await merchantApi.getCategories();
                 setCategories(catResponse.data || []);
@@ -110,7 +109,7 @@ const Products = () => {
     };
 
     const handlePermanentDelete = async (productId) => {
-        if (!window.confirm('CRITICAL: This will permanently delete the product and all images. This action cannot be undone. Continue?')) return;
+        if (!window.confirm('CRITICAL: Irreversible action. Continue?')) return;
         try {
             await merchantApi.permanentDeleteProduct(productId);
             toast.success('Product permanently deleted');
@@ -139,27 +138,26 @@ const Products = () => {
 
     const copyToClipboard = (text, type) => {
         navigator.clipboard.writeText(text);
-        toast.success(`${type} ID copied to clipboard`);
+        toast.success(`${type} ID copied`);
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="space-y-8 animate-in fade-in duration-700">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Inventory</h1>
-                    <p className="text-slate-500 mt-1 font-medium">Manage and monitor your store's product catalog.</p>
+                    <h1 className="text-2xl font-bold text-primary tracking-tight">Market Inventory</h1>
+                    <p className="text-gray-500 mt-1">Manage and monitor your digital assets across the platform.</p>
                 </div>
-                <Button
+                <button
                     onClick={() => navigate('/merchant/products/new')}
-                    className="flex items-center gap-2 bg-primary hover:bg-accent text-white px-6 py-3 rounded-xl shadow-lg shadow-primary/20 transition-all duration-300"
+                    className="btn-boutique-primary h-12 px-8 shadow-xl shadow-primary/20"
                 >
-                    <Plus size={20} />
-                    Create Product
-                </Button>
+                    <Plus size={18} className="mr-2" /> CREATE PRODUCT
+                </button>
             </div>
 
-            {/* Quick Stats Overlay */}
+            {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {['ALL', 'APPROVED', 'PENDING', 'REJECTED'].map((status) => {
                     const count = stats[status] || 0;
@@ -168,182 +166,155 @@ const Products = () => {
                         <button
                             key={status}
                             onClick={() => setFilterStatus(status)}
-                            className={`p-4 rounded-2xl border transition-all duration-300 text-left group ${isActive
-                                ? 'bg-white border-primary shadow-xl shadow-primary/5 ring-1 ring-primary'
-                                : 'bg-white border-slate-100 hover:border-slate-300 shadow-sm'
+                            className={`card-premium p-6 text-left transition-all duration-300 ${isActive
+                                ? 'bg-primary border-primary shadow-xl scale-[1.02]'
+                                : 'hover:border-accent group'
                                 }`}
                         >
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{status === 'ALL' ? 'Total' : status}</p>
-                            <p className={`text-2xl font-black ${isActive ? 'text-primary' : 'text-slate-900'}`}>{count}</p>
+                            <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 ${isActive ? 'text-gray-400' : 'text-gray-400 group-hover:text-accent'}`}>
+                                {status === 'ALL' ? 'Total Pipeline' : status}
+                            </p>
+                            <p className={`text-3xl font-black ${isActive ? 'text-white' : 'text-primary'}`}>{count}</p>
                         </button>
                     );
                 })}
             </div>
 
-            {/* Filters and Search */}
+            {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1 group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={20} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-accent transition-colors" size={18} />
                     <input
                         type="text"
-                        placeholder="Search products by title..."
-                        className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-100 rounded-2xl text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all shadow-sm"
+                        placeholder="Search product identifiers or titles..."
+                        className="w-full pl-12 pr-4 py-3 bg-white border border-gray-100 rounded-xl text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all shadow-sm"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-2">
-                    <select
-                        className="px-4 py-3.5 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:ring-4 focus:ring-primary/5 shadow-sm"
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                    >
-                        <option value="ALL">All Status</option>
-                        <option value="DRAFT">Draft</option>
-                        <option value="PENDING">Pending</option>
-                        <option value="APPROVED">Approved</option>
-                        <option value="REJECTED">Rejected</option>
-                    </select>
-                </div>
+                <select
+                    className="px-6 py-3 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest text-primary focus:ring-4 focus:ring-primary/5 shadow-sm appearance-none cursor-pointer"
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                    <option value="ALL">ALL STATES</option>
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="PENDING">PENDING</option>
+                    <option value="APPROVED">APPROVED</option>
+                    <option value="REJECTED">REJECTED</option>
+                </select>
             </div>
 
             {/* Product Table */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden shadow-slate-200/50">
+            <div className="card-premium overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-100">
-                                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Product Info</th>
-                                <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Variants</th>
-                                <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                            <tr className="bg-gray-50/50 border-b border-gray-100">
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Product Definition</th>
+                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Variants</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Operations</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody className="divide-y divide-gray-50 font-medium">
                             {loading ? (
                                 Array(5).fill(0).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
-                                        <td colSpan="4" className="px-8 py-8"><div className="h-4 bg-slate-100 rounded w-1/3"></div></td>
+                                        <td colSpan="4" className="px-8 py-8"><div className="h-4 bg-gray-50 rounded w-1/4"></div></td>
                                     </tr>
                                 ))
                             ) : filteredProducts.length === 0 ? (
                                 <tr>
                                     <td colSpan="4" className="px-8 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-4">
-                                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
-                                                <Box size={32} />
-                                            </div>
-                                            <p className="text-slate-500 font-bold">No products found matching your filters.</p>
+                                        <div className="flex flex-col items-center gap-4 opacity-30">
+                                            <Box size={48} className="text-primary" />
+                                            <p className="text-sm font-bold text-primary uppercase tracking-widest">No matching assets found</p>
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
                                 filteredProducts.map((product) => (
-                                    <tr key={product._id} className="hover:bg-slate-50/50 transition-colors group">
-                                        <td className="px-8 py-5">
+                                    <tr key={product._id} className="hover:bg-gray-50/30 transition-colors group">
+                                        <td className="px-8 py-6">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-14 h-14 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center group-hover:shadow-md transition-shadow">
+                                                <div className="w-16 h-16 bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 flex items-center justify-center shrink-0 shadow-sm group-hover:shadow-md transition-all">
                                                     {product.images?.[0] ? (
-                                                        <img src={product.images[0].url} alt="" className="w-full h-full object-cover" />
+                                                        <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
                                                     ) : (
-                                                        <ImageIcon size={20} className="text-slate-300" />
+                                                        <ImageIcon size={20} className="text-gray-300" />
                                                     )}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <div className="flex items-center gap-2 group/id">
-                                                        <h3 className="text-sm font-black text-slate-900 truncate">{product.title}</h3>
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="text-sm font-black text-primary truncate leading-tight">{product.title}</h3>
                                                         <button
-                                                            onClick={() => copyToClipboard(product._id, 'Product')}
-                                                            className="opacity-0 group-hover/id:opacity-100 p-1 hover:bg-slate-100 rounded transition-all text-slate-400"
-                                                            title="Copy Product ID"
+                                                            onClick={() => copyToClipboard(product._id, 'Asset')}
+                                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded text-gray-400 transition-all"
                                                         >
                                                             <Copy size={12} />
                                                         </button>
                                                     </div>
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight truncate">
-                                                        Added {new Date(product.createdAt).toLocaleDateString()}
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight mt-1">
+                                                        ID: {product._id.slice(-8).toUpperCase()} · {new Date(product.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                                                     </p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5">
+                                        <td className="px-6 py-6">
                                             <div className="flex flex-col gap-1.5">
-                                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider ${STATUS_CHIPS[product.status]?.color || STATUS_CHIPS.DRAFT.color}`}>
-                                                    {React.createElement(STATUS_CHIPS[product.status]?.icon || STATUS_CHIPS.DRAFT.icon, { size: 12 })}
-                                                    {STATUS_CHIPS[product.status]?.label || 'Draft'}
+                                                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest leading-none w-fit ${product.status === 'APPROVED' ? 'bg-green-50 text-green-600' :
+                                                    product.status === 'PENDING' ? 'bg-amber-50 text-amber-600' :
+                                                        product.status === 'REJECTED' ? 'bg-rose-50 text-rose-600' :
+                                                            'bg-gray-50 text-gray-500'
+                                                    }`}>
+                                                    <div className={`w-1 h-1 rounded-full ${product.status === 'APPROVED' ? 'bg-green-600' :
+                                                        product.status === 'PENDING' ? 'bg-amber-600' :
+                                                            product.status === 'REJECTED' ? 'bg-rose-600' :
+                                                                'bg-gray-500'
+                                                        }`} />
+                                                    {product.status}
                                                 </div>
                                                 {product.status === 'REJECTED' && product.rejected_reason && (
-                                                    <p className="text-[9px] font-bold text-rose-500 max-w-[150px] leading-tight flex items-center gap-1">
-                                                        <AlertCircle size={10} />
-                                                        {product.rejected_reason}
+                                                    <p className="text-[9px] font-bold text-rose-500 max-w-[180px] leading-tight flex items-center gap-1">
+                                                        <AlertCircle size={10} /> {product.rejected_reason}
                                                     </p>
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5">
+                                        <td className="px-6 py-6">
                                             <button
                                                 onClick={() => navigate(`/merchant/products/${product._id}/variants`)}
-                                                className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-primary/10 rounded-lg group/var transition-all"
+                                                className="flex items-center gap-3 px-4 py-2 bg-gray-50 hover:bg-accent/5 rounded-xl group/var transition-all"
                                             >
-                                                <span className="text-xs font-black text-slate-700 group-hover/var:text-primary">{product.stats?.variant_count || 0}</span>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter group-hover/var:text-primary/70">Variants</span>
-                                                <ChevronRight size={12} className="text-slate-300 group-hover/var:text-primary/50 group-hover/var:translate-x-0.5 transition-all" />
+                                                <span className="text-sm font-black text-primary group-hover/var:text-accent">{product.stats?.variant_count || 0}</span>
+                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover/var:text-accent/70">Units</span>
+                                                <ChevronRight size={14} className="text-gray-300 group-hover/var:text-accent/50 group-hover/var:translate-x-1 transition-all" />
                                             </button>
                                         </td>
-                                        <td className="px-6 py-5 text-right">
-                                            <div className="flex items-center justify-end gap-2">
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-1">
                                                 <button
                                                     onClick={() => navigate(`/merchant/products/${product._id}/edit`)}
-                                                    className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
-                                                    title="Edit Product"
+                                                    className="p-2.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-xl transition-all"
+                                                    title="Refine Specification"
                                                 >
                                                     <Edit2 size={18} />
                                                 </button>
 
                                                 <button
                                                     onClick={() => navigate(`/merchant/products/${product._id}`)}
-                                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                                    title="View Details"
+                                                    className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                                    title="Inspect Asset"
                                                 >
                                                     <Eye size={18} />
                                                 </button>
 
-                                                <button
-                                                    onClick={() => navigate(`/merchant/products/${product._id}/variants`)}
-                                                    className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
-                                                    title="Manage Variants"
-                                                >
-                                                    <Boxes size={18} />
-                                                </button>
-
-                                                {product.status === 'APPROVED' && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedProduct(product);
-                                                            setShowChangeModal(true);
-                                                        }}
-                                                        className="p-2 text-primary hover:bg-primary/5 rounded-lg transition-all"
-                                                        title="Request Modification"
-                                                    >
-                                                        <Clock size={18} />
-                                                    </button>
-                                                )}
-
-                                                {product.status === 'APPROVED' && (
-                                                    <button
-                                                        onClick={() => handleToggleActive(product._id, product.is_active)}
-                                                        className={`p-2 rounded-lg transition-all ${product.is_active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-rose-500 hover:bg-rose-50'}`}
-                                                        title={product.is_active ? 'Deactivate' : 'Activate'}
-                                                    >
-                                                        {product.is_active ? <Eye size={18} /> : <EyeOff size={18} className="opacity-30" />}
-                                                    </button>
-                                                )}
-
                                                 {product.status === 'DRAFT' && (
                                                     <button
                                                         onClick={() => handleSubmitForApproval(product._id)}
-                                                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                                                        title="Submit for Approval"
+                                                        className="p-2.5 text-green-600 hover:bg-green-50 rounded-xl transition-all"
+                                                        title="Deploy to Moderation"
                                                     >
                                                         <CheckCircle2 size={18} />
                                                     </button>
@@ -352,30 +323,21 @@ const Products = () => {
                                                 {product.status === 'REJECTED' && (
                                                     <button
                                                         onClick={() => handleResubmit(product._id)}
-                                                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
-                                                        title="Resubmit for Approval"
+                                                        className="p-2.5 text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
+                                                        title="Re-deploy Asset"
                                                     >
                                                         <CheckCircle2 size={18} />
                                                     </button>
                                                 )}
 
                                                 {['DRAFT', 'REJECTED'].includes(product.status) && (
-                                                    <div className="flex gap-1 border-l border-slate-100 ml-1 pl-1">
-                                                        <button
-                                                            onClick={() => handleDelete(product._id)}
-                                                            className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                                                            title="Soft Delete (Deactivate)"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handlePermanentDelete(product._id)}
-                                                            className="p-2 text-rose-600 hover:text-rose-800 hover:bg-rose-100 rounded-lg transition-all"
-                                                            title="Permanent Delete (Irreversible)"
-                                                        >
-                                                            <Trash2 size={18} strokeWidth={3} />
-                                                        </button>
-                                                    </div>
+                                                    <button
+                                                        onClick={() => handleDelete(product._id)}
+                                                        className="p-2.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                                        title="Decommission Asset"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
                                                 )}
                                             </div>
                                         </td>
@@ -389,54 +351,36 @@ const Products = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-4">
-                    <Button
-                        variant="outline"
-                        size="sm"
+                <div className="flex items-center justify-center gap-3 pt-4">
+                    <button
                         disabled={page === 1}
                         onClick={() => setPage(page - 1)}
-                        className="rounded-xl"
+                        className="p-2.5 rounded-xl border border-gray-100 bg-white text-primary disabled:opacity-30 hover:bg-gray-50 transition-all font-black text-xs uppercase tracking-widest"
                     >
-                        Previous
-                    </Button>
-                    <div className="flex items-center gap-1">
+                        Prev
+                    </button>
+                    <div className="flex gap-2">
                         {[...Array(totalPages)].map((_, i) => (
                             <button
                                 key={i + 1}
                                 onClick={() => setPage(i + 1)}
-                                className={`w-10 h-10 rounded-xl text-sm font-black transition-all ${page === i + 1
-                                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100'
+                                className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${page === i + 1
+                                    ? 'bg-primary text-white shadow-lg'
+                                    : 'bg-white text-gray-400 border border-gray-100 hover:border-accent hover:text-accent'
                                     }`}
                             >
                                 {i + 1}
                             </button>
                         ))}
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
+                    <button
                         disabled={page === totalPages}
                         onClick={() => setPage(page + 1)}
-                        className="rounded-xl"
+                        className="p-2.5 rounded-xl border border-gray-100 bg-white text-primary disabled:opacity-30 hover:bg-gray-50 transition-all font-black text-xs uppercase tracking-widest"
                     >
                         Next
-                    </Button>
+                    </button>
                 </div>
-            )}
-            {/* Modal - Product Modification */}
-            {selectedProduct && (
-                <ChangeRequestModal
-                    isOpen={showChangeModal}
-                    onClose={() => {
-                        setShowChangeModal(false);
-                        setSelectedProduct(null);
-                    }}
-                    entityType="PRODUCT"
-                    entityId={selectedProduct._id}
-                    currentData={selectedProduct}
-                    categories={categories}
-                />
             )}
         </div>
     );

@@ -441,14 +441,21 @@ const OrderDetail = () => {
                         <div className="space-y-3">
                             {order.items && order.items.length > 0 ? (
                                 order.items.map((item, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                        <div className="flex-1">
-                                            <p className="text-sm font-black text-slate-900">{item.product_name}</p>
-                                            {item.variant_label && (
-                                                <p className="text-xs text-slate-500 font-medium">{item.variant_label}</p>
+                                    <div key={idx} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <div className="w-16 h-16 rounded-xl bg-white border border-slate-100 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
+                                            {item.image ? (
+                                                <img src={item.image} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <Package size={20} className="text-slate-200" />
                                             )}
                                         </div>
-                                        <div className="text-right">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-black text-slate-900 truncate">{item.product_name}</p>
+                                            {item.variant_label && (
+                                                <p className="text-xs text-slate-500 font-medium truncate">{item.variant_label}</p>
+                                            )}
+                                        </div>
+                                        <div className="text-right shrink-0">
                                             <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Qty: {item.quantity}</p>
                                             <p className="text-sm font-black text-slate-900">₹{item.price.toLocaleString()}</p>
                                         </div>
