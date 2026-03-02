@@ -145,10 +145,10 @@ const Requests = () => {
                         <div className="p-2 bg-primary/10 rounded-lg text-primary">
                             <Layers size={20} />
                         </div>
-                        <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Management Hub</span>
+                        <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Merchant Console</span>
                     </div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight font-outfit">Request Hub</h1>
-                    <p className="text-slate-500 mt-2 font-medium text-sm font-inter">Track your catalog suggestions and system modification requests.</p>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight font-outfit">My Requests</h1>
+                    <p className="text-slate-500 mt-2 font-medium text-sm font-inter text-balance">Track your requests for new categories and product changes.</p>
                 </div>
                 <div className="flex gap-3">
                     {activeTab === 'CATEGORY' && (
@@ -157,7 +157,7 @@ const Requests = () => {
                             className="flex items-center gap-2 bg-slate-900 border-slate-900 shadow-xl shadow-slate-900/20 py-6 px-8 rounded-2xl font-black text-xs uppercase tracking-widest group"
                         >
                             <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
-                            Suggest Category
+                            New Category
                         </Button>
                     )}
                 </div>
@@ -166,9 +166,9 @@ const Requests = () => {
             {/* Stats Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard label="Total Requests" value={stats.total} icon={GitPullRequest} colorClass="bg-slate-50 text-slate-400" />
-                <StatCard label="Pending Approval" value={stats.pending} icon={Clock} colorClass="bg-amber-50 text-amber-500" />
-                <StatCard label="Live/Approved" value={stats.approved} icon={CheckCircle2} colorClass="bg-emerald-50 text-emerald-500" />
-                <StatCard label="Declined" value={stats.rejected} icon={XCircle} colorClass="bg-rose-50 text-rose-500" />
+                <StatCard label="Reviewing" value={stats.pending} icon={Clock} colorClass="bg-amber-50 text-amber-500" />
+                <StatCard label="Approved" value={stats.approved} icon={CheckCircle2} colorClass="bg-emerald-50 text-emerald-500" />
+                <StatCard label="Rejected" value={stats.rejected} icon={XCircle} colorClass="bg-rose-50 text-rose-500" />
             </div>
 
             {/* Main Content Area */}
@@ -182,7 +182,7 @@ const Requests = () => {
                                 onClick={() => setActiveTab(tab)}
                                 className={`pb-2 text-[11px] font-black uppercase tracking-[0.15em] transition-all relative font-inter ${activeTab === tab ? 'text-primary' : 'text-slate-400 hover:text-slate-600'}`}
                             >
-                                {tab === 'CATEGORY' ? 'Catalog Expansions' : 'System Modifications'}
+                                {tab === 'CATEGORY' ? 'New Categories' : 'Product Changes'}
                                 {activeTab === tab && (
                                     <div className="absolute -bottom-8 left-0 right-0 h-1 bg-primary rounded-t-full shadow-[0_-2px_10px_rgba(var(--primary-rgb),0.3)] animate-in fade-in slide-in-from-bottom-2" />
                                 )}
@@ -207,7 +207,7 @@ const Requests = () => {
                     {loading ? (
                         <div className="flex flex-col items-center justify-center p-20 gap-4 opacity-50">
                             <div className="w-12 h-12 border-4 border-slate-100 border-t-primary rounded-full animate-spin" />
-                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Hydrating Request Grid...</p>
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Loading requests...</p>
                         </div>
                     ) : filteredRequests.length === 0 ? (
                         <div className="p-20 text-center flex flex-col items-center gap-4">
@@ -233,7 +233,7 @@ const Requests = () => {
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-3">
                                             <h3 className="font-black text-slate-900 tracking-tight text-lg font-outfit uppercase">
-                                                {activeTab === 'CATEGORY' ? req.name : `${req.entity_type} Mod`}
+                                                {activeTab === 'CATEGORY' ? req.name : `${req.entity_type} Change`}
                                             </h3>
                                             {activeTab === 'CHANGE' && (
                                                 <span className="text-[10px] font-black bg-slate-900 text-white px-2 py-0.5 rounded-md tracking-tighter shadow-sm">
@@ -246,7 +246,7 @@ const Requests = () => {
                                             <div className="flex items-center gap-1.5 text-slate-400">
                                                 <Clock size={12} />
                                                 <span className="text-[10px] font-bold uppercase tracking-wider">
-                                                    {new Date(req.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    {req.createdAt ? new Date(req.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently'}
                                                 </span>
                                             </div>
 
@@ -271,7 +271,11 @@ const Requests = () => {
                                 <div className="flex items-center gap-8 pl-16 md:pl-0">
                                     <div className="hidden lg:block text-right pr-8 border-r border-slate-50">
                                         <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Last Update</p>
-                                        <p className="text-[10px] font-bold text-slate-500 uppercase">{new Date(req.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase italic">
+                                            {req.updatedAt || req.createdAt
+                                                ? new Date(req.updatedAt || req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                : 'Recently'}
+                                        </p>
                                     </div>
 
                                     <StatusBadge status={req.status} />
@@ -298,8 +302,8 @@ const Requests = () => {
                                     <Tag size={24} />
                                 </div>
                                 <div className="space-y-1">
-                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Catalog Expansion</h2>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Suggest a structure for approval</p>
+                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">New Category</h2>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Send a request for a new category</p>
                                 </div>
                             </div>
                             <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white rounded-xl border border-transparent hover:border-slate-200 transition-all text-slate-300 hover:text-slate-900">
@@ -311,7 +315,7 @@ const Requests = () => {
                             <div className="p-8 space-y-6">
                                 {/* Name Input */}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Proposed Identifier</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Category Name</label>
                                     <div className="relative group">
                                         <input
                                             type="text"
@@ -346,7 +350,7 @@ const Requests = () => {
 
                                 {/* Description */}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Justification & Details</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Reason for New Category</label>
                                     <div className="relative group">
                                         <textarea
                                             placeholder="Why should this be added? Provide context..."
@@ -365,7 +369,7 @@ const Requests = () => {
                                     type="submit"
                                     className="flex-1 py-5 rounded-3xl font-black bg-slate-900 border-slate-900 shadow-2xl shadow-slate-900/10 uppercase tracking-widest text-xs flex items-center justify-center gap-2 group"
                                 >
-                                    Transmit Request
+                                    Send Request
                                     <ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                 </Button>
                                 <Button

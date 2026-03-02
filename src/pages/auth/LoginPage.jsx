@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import authApi from '../../api/auth';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { authSchemas } from '../../validations/auth.schema';
 
 const LoginPage = () => {
     const [loginMode, setLoginMode] = useState('password'); // password | otp
@@ -14,6 +15,7 @@ const LoginPage = () => {
     const [otp, setOtp] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [loading, setLoading] = useState(false);
 
     const { loginWithPassword, verifyOtp, user } = useAuth();
@@ -46,9 +48,78 @@ const LoginPage = () => {
         }
     }, [user, navigate, location]); // Added location dependency
 
+    const handleBlur = (name, value) => {
+        // 🛡️ Industrial Blur Validation
+        let schema;
+        let data = { [name]: value };
+
+        if (loginMode === 'password') {
+            schema = authSchemas.login;
+            data = { email, password, [name]: value };
+        } else {
+            if (otpStep === 'request') {
+                schema = authSchemas.otpRequest;
+                data = { email, [name]: value };
+            } else {
+                schema = authSchemas.otpVerify;
+                data = { email, otp, [name]: value };
+            }
+        }
+
+        const result = schema.safeParse(data);
+
+        if (!result.success) {
+            const fieldIssue = result.error.issues.find(issue => issue.path[0] === name);
+            if (fieldIssue) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    [name]: fieldIssue.message
+                }));
+                return;
+            }
+        }
+
+        // ✅ Clear error if field is now valid
+        setFieldErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[name];
+            return newErrors;
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setFieldErrors({});
+
+        // 🛡️ Industrial Frontend Validation
+        let schema;
+        let data;
+
+        if (loginMode === 'password') {
+            schema = authSchemas.login;
+            data = { email, password };
+        } else {
+            if (otpStep === 'request') {
+                schema = authSchemas.otpRequest;
+                data = { email };
+            } else {
+                schema = authSchemas.otpVerify;
+                data = { email, otp };
+            }
+        }
+
+        const result = schema.safeParse(data);
+
+        if (!result.success) {
+            const errors = {};
+            result.error.issues.forEach(issue => {
+                errors[issue.path[0]] = issue.message;
+            });
+            setFieldErrors(errors);
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -127,10 +198,17 @@ const LoginPage = () => {
                                 type="email"
                                 required
                                 disabled={loginMode === 'otp' && otpStep === 'verify'}
-                                label="Corporate Email"
-                                placeholder="name@firstweb.com"
+                                label="Email Address"
+                                placeholder="name@example.com"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    if (fieldErrors.email) setFieldErrors(prev => {
+                                        const n = { ...prev }; delete n.email; return n;
+                                    });
+                                }}
+                                onBlur={(e) => handleBlur('email', e.target.value)}
+                                error={fieldErrors.email}
                                 icon={<Mail className="text-gray-400" size={18} />}
                             />
                         </div>
@@ -145,7 +223,14 @@ const LoginPage = () => {
                                     label="Secure Password"
                                     placeholder="••••••••"
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value);
+                                        if (fieldErrors.password) setFieldErrors(prev => {
+                                            const n = { ...prev }; delete n.password; return n;
+                                        });
+                                    }}
+                                    onBlur={(e) => handleBlur('password', e.target.value)}
+                                    error={fieldErrors.password}
                                     icon={<Lock className="text-gray-400" size={18} />}
                                 />
                                 <button
@@ -167,7 +252,15 @@ const LoginPage = () => {
                                         label="One-Time Password"
                                         placeholder="6-Digit Code"
                                         value={otp}
-                                        onChange={(e) => setOtp(e.target.value)}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                            setOtp(val);
+                                            if (fieldErrors.otp) setFieldErrors(prev => {
+                                                const n = { ...prev }; delete n.otp; return n;
+                                            });
+                                        }}
+                                        onBlur={(e) => handleBlur('otp', e.target.value)}
+                                        error={fieldErrors.otp}
                                         icon={<Send className="text-gray-400" size={18} />}
                                     />
                                     <p className="mt-2 text-xs text-gray-400">

@@ -4,6 +4,8 @@ import { User, Mail, Lock, Phone, UserPlus, CheckCircle } from 'lucide-react';
 import authApi from '../../api/auth';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { authSchemas } from '../../validations/auth.schema';
+import { z } from 'zod';
 
 const RegisterPage = () => {
     const location = useLocation();
@@ -19,25 +21,91 @@ const RegisterPage = () => {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [success, setSuccess] = useState(false);
 
     const navigate = useNavigate();
 
     // ... existing handlers ...
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        let { name, value } = e.target;
+
+        // 🛡️ Industrial Input Cleaning (Phone)
+        if (name === 'phone') {
+            value = value.replace(/\D/g, '').slice(0, 10);
+        }
+
+        setFormData({ ...formData, [name]: value });
+
+        // Clear field error when user starts typing
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
+    };
+
+    const handleBlur = (e) => {
+        const { name, value } = e.target;
+
+        // 🛡️ Deep Field Validation
+        // We validate against a partial object to preserve cross-field rules
+        const result = authSchemas.register.safeParse({ ...formData, [name]: value });
+
+        if (!result.success) {
+            const fieldIssue = result.error.issues.find(issue => issue.path[0] === name);
+            if (fieldIssue) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    [name]: fieldIssue.message
+                }));
+                return; // 🛑 Found an error, don't clear
+            }
+        }
+
+        // ✅ If we get here, either the whole form is valid OR the specific field is valid
+        // So we clear the error for this field
+        setFieldErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[name];
+            return newErrors;
+        });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setFieldErrors({});
+
+        // 🛡️ Frontend Validation with Zod
+        const result = authSchemas.register.safeParse(formData);
+        if (!result.success) {
+            const errors = {};
+            result.error.issues.forEach(issue => {
+                errors[issue.path[0]] = issue.message;
+            });
+            setFieldErrors(errors);
+            return;
+        }
+
         setLoading(true);
 
         try {
             await authApi.register(formData);
             setSuccess(true);
         } catch (err) {
-            setError(err.message || 'Registration failed. Please try again.');
+            // Handle backend validation errors if they slip through
+            if (err.errors && Array.isArray(err.errors)) {
+                const bErrors = {};
+                err.errors.forEach(e => {
+                    bErrors[e.field] = e.message;
+                });
+                setFieldErrors(bErrors);
+            } else {
+                setError(err.message || 'Registration failed. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -109,39 +177,51 @@ const RegisterPage = () => {
                             icon={<User size={18} className="text-gray-400" />}
                             value={formData.full_name}
                             onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={fieldErrors.full_name}
                         />
 
                         <Input
-                            label="Corporate Email"
+                            label="Email Address"
                             name="email"
                             type="email"
                             required
-                            placeholder="name@company.com"
+                            placeholder="name@example.com"
                             icon={<Mail size={18} className="text-gray-400" />}
                             value={formData.email}
                             onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={fieldErrors.email}
                         />
 
                         <Input
                             label="Phone Number"
                             name="phone"
                             type="tel"
+                            required
                             placeholder="+91 00000 00000"
                             icon={<Phone size={18} className="text-gray-400" />}
                             value={formData.phone}
                             onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={fieldErrors.phone}
                         />
 
-                        <Input
-                            label="Choose Password"
-                            name="password"
-                            type="password"
-                            required
-                            placeholder="Min. 8 characters"
-                            icon={<Lock size={18} className="text-gray-400" />}
-                            value={formData.password}
-                            onChange={handleChange}
-                        />
+                        <div className="relative">
+                            <Input
+                                label="Choose Password"
+                                name="password"
+                                type="password"
+                                required
+                                placeholder="Min. 8 characters"
+                                icon={<Lock size={18} className="text-gray-400" />}
+                                value={formData.password}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                error={fieldErrors.password}
+                            />
+                            {/* Simple tooltip or helper text could go here, but Zod error is enough */}
+                        </div>
 
                         <div className="pt-2">
                             <Button

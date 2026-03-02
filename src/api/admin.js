@@ -291,9 +291,11 @@ const adminApi = {
             throw error.response?.data || error;
         }
     },
-    approveCategoryRequest: async (id) => {
+    approveCategoryRequest: async (id, formData = null) => {
         try {
-            const response = await api.patch(`/admin/category-requests/${id}/approve`);
+            const config = formData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+            const body = formData ? formData : {};
+            const response = await api.patch(`/admin/category-requests/${id}/approve`, body, config);
             return response.data;
         } catch (error) {
             throw error.response?.data || error;

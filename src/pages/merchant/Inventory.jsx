@@ -20,7 +20,6 @@ const Inventory = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [newStockValue, setNewStockValue] = useState('');
-    const [newReservedValue, setNewReservedValue] = useState('');
 
     useEffect(() => {
         fetchStock(page);
@@ -60,24 +59,14 @@ const Inventory = () => {
     const handleUpdateStock = async (variantId) => {
         try {
             const quantity = parseInt(newStockValue);
-            const reserved = parseInt(newReservedValue);
 
             if (isNaN(quantity) || quantity < 0) {
                 toast.error('Invalid total stock');
                 return;
             }
-            if (isNaN(reserved) || reserved < 0) {
-                toast.error('Invalid reserved stock');
-                return;
-            }
-            if (reserved > quantity) {
-                toast.error('Reserved exceeds total');
-                return;
-            }
 
             await merchantApi.updateVariantStock(variantId, {
                 stock: quantity,
-                reserved_stock: reserved,
                 reason: 'Merchant manual update via Inventory Page'
             });
 
@@ -180,25 +169,16 @@ const Inventory = () => {
                                             </td>
                                             <td className="px-6 py-6 text-center">
                                                 <span className={`text-sm font-black ${isEditing
-                                                    ? ((parseInt(newStockValue || 0) - parseInt(newReservedValue || 0)) <= 5 ? 'text-amber-500' : 'text-green-500')
+                                                    ? ((parseInt(newStockValue || 0) - item.reserved_stock) <= 5 ? 'text-amber-500' : 'text-green-500')
                                                     : (item.available_stock <= 5 ? 'text-amber-500' : 'text-green-500')
                                                     }`}>
-                                                    {isEditing ? (parseInt(newStockValue || 0) - parseInt(newReservedValue || 0)) : item.available_stock}
+                                                    {isEditing ? (parseInt(newStockValue || 0) - item.reserved_stock) : item.available_stock}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-6 text-center">
-                                                {isEditing ? (
-                                                    <input
-                                                        type="number"
-                                                        className="w-16 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-black text-center focus:ring-2 focus:ring-accent focus:border-accent outline-none"
-                                                        value={newReservedValue}
-                                                        onChange={(e) => setNewReservedValue(e.target.value)}
-                                                    />
-                                                ) : (
-                                                    <span className="text-sm font-black text-gray-400">
-                                                        {item.reserved_stock}
-                                                    </span>
-                                                )}
+                                                <span className="text-sm font-black text-gray-400">
+                                                    {item.reserved_stock}
+                                                </span>
                                             </td>
                                             <td className="px-6 py-6 text-center">
                                                 {isEditing ? (
@@ -245,7 +225,6 @@ const Inventory = () => {
                                                         onClick={() => {
                                                             setEditingId(item.variant_id);
                                                             setNewStockValue((item.stock).toString());
-                                                            setNewReservedValue((item.reserved_stock).toString());
                                                         }}
                                                         className="p-2 text-gray-400 hover:text-accent hover:bg-accent/5 rounded-xl transition-all"
                                                         title="Synchronize"

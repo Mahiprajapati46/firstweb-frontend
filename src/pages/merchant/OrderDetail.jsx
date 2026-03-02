@@ -22,6 +22,7 @@ import {
 import merchantApi from '../../api/merchant';
 import Button from '../../components/ui/Button';
 import { toast } from 'react-hot-toast';
+import { commonSchemas } from '../../validations/common.schema';
 
 const STATUS_CONFIG = {
     CREATED: { label: 'New', color: 'bg-blue-50 text-blue-600', icon: Clock },
@@ -42,16 +43,38 @@ const ShippingModal = ({ isOpen, onClose, onSubmit, processing }) => {
         tracking_id: '',
         tracking_url: ''
     });
+    const [fieldErrors, setFieldErrors] = useState({});
 
     if (!isOpen) return null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!formData.courier_name || !formData.tracking_id) {
-            toast.error('Courier name and tracking ID are required');
+
+        // 🛡️ Industrial Validation
+        const result = commonSchemas.shipping_details.safeParse(formData);
+        if (!result.success) {
+            const errors = {};
+            result.error.issues.forEach(issue => {
+                errors[issue.path[0]] = issue.message;
+            });
+            setFieldErrors(errors);
             return;
         }
-        onSubmit(formData);
+
+        setFieldErrors({});
+        onSubmit(result.data);
+    };
+
+    const handleInputChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        // Clear error when user types
+        if (fieldErrors[field]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[field];
+                return newErrors;
+            });
+        }
     };
 
     return (
@@ -65,36 +88,46 @@ const ShippingModal = ({ isOpen, onClose, onSubmit, processing }) => {
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-black text-slate-700 mb-2">Courier Name *</label>
+                        <label className="block text-sm font-black text-slate-700 mb-2">Courier Name <span className="text-rose-500">*</span></label>
                         <input
                             type="text"
                             value={formData.courier_name}
-                            onChange={(e) => setFormData({ ...formData, courier_name: e.target.value })}
+                            onChange={(e) => handleInputChange('courier_name', e.target.value)}
                             placeholder="e.g., BlueDart, DTDC, Delhivery"
-                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                            required
+                            className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all font-medium ${fieldErrors.courier_name
+                                ? 'border-rose-500 focus:ring-rose-200 focus:border-rose-500'
+                                : 'border-slate-200 focus:ring-primary/20 focus:border-primary'
+                                }`}
                         />
+                        {fieldErrors.courier_name && <p className="text-rose-500 text-[10px] font-bold mt-1 uppercase tracking-wider">{fieldErrors.courier_name}</p>}
                     </div>
                     <div>
-                        <label className="block text-sm font-black text-slate-700 mb-2">Tracking ID *</label>
+                        <label className="block text-sm font-black text-slate-700 mb-2">Tracking ID <span className="text-rose-500">*</span></label>
                         <input
                             type="text"
                             value={formData.tracking_id}
-                            onChange={(e) => setFormData({ ...formData, tracking_id: e.target.value })}
+                            onChange={(e) => handleInputChange('tracking_id', e.target.value)}
                             placeholder="Enter tracking number"
-                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                            required
+                            className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all font-medium ${fieldErrors.tracking_id
+                                ? 'border-rose-500 focus:ring-rose-200 focus:border-rose-500'
+                                : 'border-slate-200 focus:ring-primary/20 focus:border-primary'
+                                }`}
                         />
+                        {fieldErrors.tracking_id && <p className="text-rose-500 text-[10px] font-bold mt-1 uppercase tracking-wider">{fieldErrors.tracking_id}</p>}
                     </div>
                     <div>
                         <label className="block text-sm font-black text-slate-700 mb-2">Tracking URL (Optional)</label>
                         <input
-                            type="url"
+                            type="text"
                             value={formData.tracking_url}
-                            onChange={(e) => setFormData({ ...formData, tracking_url: e.target.value })}
+                            onChange={(e) => handleInputChange('tracking_url', e.target.value)}
                             placeholder="https://tracking.example.com/..."
-                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
+                            className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all font-medium ${fieldErrors.tracking_url
+                                ? 'border-rose-500 focus:ring-rose-200 focus:border-rose-500'
+                                : 'border-slate-200 focus:ring-primary/20 focus:border-primary'
+                                }`}
                         />
+                        {fieldErrors.tracking_url && <p className="text-rose-500 text-[10px] font-bold mt-1 uppercase tracking-wider">{fieldErrors.tracking_url}</p>}
                     </div>
                     <div className="flex gap-3 pt-4">
                         <button
@@ -144,7 +177,7 @@ const RejectReturnModal = ({ isOpen, onClose, onSubmit, processing }) => {
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-black text-slate-700 mb-2">Rejection Reason *</label>
+                        <label className="block text-sm font-black text-slate-700 mb-2">Rejection Reason <span className="text-rose-500">*</span></label>
                         <textarea
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}

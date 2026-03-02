@@ -14,11 +14,16 @@ import {
     Wallet,
     Tag,
     Trash2,
-    Plus
+    Plus,
+    User,
+    Building,
+    Shield
 } from 'lucide-react';
 import customerApi from '../../api/customer';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { commonSchemas } from '../../validations/common.schema';
+import Input from '../../components/ui/Input';
 
 const Checkout = () => {
     const navigate = useNavigate();
@@ -36,16 +41,31 @@ const Checkout = () => {
     const isSubmitting = useRef(false);
     const [isAddAddressOpen, setIsAddAddressOpen] = useState(false);
     const [newAddress, setNewAddress] = useState({
-        full_name: '',
+        name: '',
         phone: '',
-        address_line1: '',
-        address_line2: '',
+        line1: '',
+        line2: '',
         city: '',
         state: '',
-        postal_code: '',
+        pincode: '',
+        country: 'India',
         type: 'HOME'
     });
+
+    // 🛡️ Data Normalization Helper
+    const normalizeAddress = (addr) => ({
+        ...addr,
+        name: (addr.name || addr.full_name || addr.fullName || '').trim(),
+        line1: (addr.line1 || addr.address_line1 || addr.addressLine1 || '').trim(),
+        line2: (addr.line2 || addr.address_line2 || addr.addressLine2 || '').trim(),
+        pincode: (addr.pincode || addr.postal_code || addr.postalCode || addr.zipCode || '').trim(),
+        phone: (addr.phone || addr.mobile || addr.business_phone || '').trim(),
+        city: (addr.city || '').trim(),
+        state: (addr.state || '').trim(),
+        country: addr.country || 'India' // Added country to normalization
+    });
     const [submittingAddress, setSubmittingAddress] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
 
     // Get variantIds and couponCode from navigation state
     const variantIds = location.state?.variantIds || [];
@@ -70,13 +90,17 @@ const Checkout = () => {
                 customerApi.checkoutPreview(passedCouponCode || undefined, variantIds)
             ]);
 
-            if (addrRes.data) setAddresses(addrRes.data);
-            if (previewRes.success) {
-                setPreview(previewRes.data);
-                // Pre-select default address if exists
-                const defaultAddr = addrRes.data?.find(a => a.is_default);
-                if (defaultAddr) setSelectedAddress(defaultAddr);
-                else if (addrRes.data?.length > 0) setSelectedAddress(addrRes.data[0]);
+            if (addrRes.data) {
+                const normalized = addrRes.data.map(normalizeAddress);
+                setAddresses(normalized);
+
+                if (previewRes.success) {
+                    setPreview(previewRes.data);
+                    // Pre-select default address if exists
+                    const defaultAddr = normalized.find(a => a.is_default);
+                    if (defaultAddr) setSelectedAddress(defaultAddr);
+                    else if (normalized.length > 0) setSelectedAddress(normalized[0]);
+                }
             }
         } catch (error) {
             console.error('Fetch Checkout Data Error:', error);
@@ -86,8 +110,69 @@ const Checkout = () => {
         }
     };
 
+    const handleFieldChange = (name, value) => {
+        let cleanedValue = value;
+
+        // 🛡️ Industrial Input Cleaning
+        if (name === 'phone') {
+            cleanedValue = value.replace(/\D/g, '').slice(0, 10);
+        } else if (name === 'pincode') {
+            cleanedValue = value.replace(/\D/g, '').slice(0, 6);
+        } else if (name === 'city' || name === 'state') {
+            cleanedValue = value.replace(/[^a-zA-Z\s]/g, '');
+        }
+
+        setNewAddress(prev => ({ ...prev, [name]: cleanedValue }));
+
+        // Clear field error when user starts typing
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
+    };
+
+    const handleFieldBlur = (name, value) => {
+        // 🛡️ Real-time Field Validation
+        const result = commonSchemas.address.safeParse({ ...newAddress, [name]: value });
+
+        if (!result.success) {
+            const fieldIssue = result.error.issues.find(issue => issue.path[0] === name);
+            if (fieldIssue) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    [name]: fieldIssue.message
+                }));
+                return;
+            }
+        }
+
+        // ✅ Clear error if field is now valid
+        setFieldErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[name];
+            return newErrors;
+        });
+    };
+
     const handleAddAddress = async (e) => {
         e.preventDefault();
+        setFieldErrors({});
+
+        // 🛡️ Frontend Validation with Zod
+        const result = commonSchemas.address.safeParse(newAddress);
+        if (!result.success) {
+            const errors = {};
+            result.error.issues.forEach(issue => {
+                errors[issue.path[0]] = issue.message;
+            });
+            setFieldErrors(errors);
+            toast.error("Please clarify the required fields.");
+            return;
+        }
+
         try {
             setSubmittingAddress(true);
             const response = await customerApi.addAddress(newAddress);
@@ -95,22 +180,24 @@ const Checkout = () => {
                 toast.success('Address secured in your vault');
                 setIsAddAddressOpen(false);
                 setNewAddress({
-                    full_name: '',
+                    name: '',
                     phone: '',
-                    address_line1: '',
-                    address_line2: '',
+                    line1: '',
+                    line2: '',
                     city: '',
                     state: '',
-                    postal_code: '',
+                    pincode: '',
+                    country: 'India',
                     type: 'HOME'
                 });
                 const addrRes = await customerApi.getAddresses();
                 if (addrRes.data) {
-                    setAddresses(addrRes.data);
+                    const normalized = addrRes.data.map(normalizeAddress);
+                    setAddresses(normalized);
                     // Select the newly added address
-                    const added = addrRes.data.find(a => a.full_name === newAddress.full_name && a.phone === newAddress.phone);
+                    const added = normalized.find(a => a.name === newAddress.name && a.phone === newAddress.phone);
                     if (added) setSelectedAddress(added);
-                    else setSelectedAddress(addrRes.data[addrRes.data.length - 1]);
+                    else setSelectedAddress(normalized[normalized.length - 1]);
                 }
             }
         } catch (error) {
@@ -157,13 +244,13 @@ const Checkout = () => {
             console.log('[Checkout] Initiating order creation');
             const orderData = {
                 shipping_address: {
-                    name: selectedAddress.full_name,
+                    name: selectedAddress.name,
                     phone: selectedAddress.phone,
-                    line1: selectedAddress.address_line1,
-                    line2: selectedAddress.address_line2,
+                    line1: selectedAddress.line1,
+                    line2: selectedAddress.line2,
                     city: selectedAddress.city,
                     state: selectedAddress.state,
-                    pincode: selectedAddress.postal_code,
+                    pincode: selectedAddress.pincode,
                     country: 'India'
                 },
                 use_wallet: useWallet,
@@ -268,23 +355,25 @@ const Checkout = () => {
                                                     <span className="px-2 py-0.5 bg-gray-50 text-[10px] font-black uppercase text-gray-500 rounded border border-gray-100">{addr.type}</span>
                                                     {selectedAddress?._id === addr._id && <CheckCircle2 size={18} className="text-primary" />}
                                                 </div>
-                                                <h4 className="font-bold text-gray-900 mb-1">{addr.full_name}</h4>
+                                                <h4 className="font-bold text-gray-900 mb-1">{addr.name}</h4>
                                                 <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">
-                                                    {addr.address_line1}, {addr.city}, {addr.postal_code}
+                                                    {addr.line1}, {addr.city}, {addr.pincode}
                                                 </p>
                                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{addr.phone}</p>
                                             </button>
                                         ))}
 
-                                        <button
-                                            onClick={() => setIsAddAddressOpen(true)}
-                                            className="p-6 rounded-2xl border-2 border-dashed border-gray-200 hover:border-primary/30 hover:bg-white transition-all flex flex-col items-center justify-center gap-3 text-gray-400 group"
-                                        >
-                                            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                                                <Plus size={20} />
-                                            </div>
-                                            <span className="text-xs font-bold uppercase tracking-wider">Add New Address</span>
-                                        </button>
+                                        {!isAddAddressOpen && (
+                                            <button
+                                                onClick={() => { setIsAddAddressOpen(true); setFieldErrors({}); }}
+                                                className="p-6 rounded-2xl border-2 border-dashed border-gray-200 hover:border-primary/30 hover:bg-white transition-all flex flex-col items-center justify-center gap-3 text-gray-400 group"
+                                            >
+                                                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                                                    <Plus size={20} />
+                                                </div>
+                                                <span className="text-xs font-bold uppercase tracking-wider">Add New Address</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </section>
 
@@ -466,54 +555,89 @@ const Checkout = () => {
                                 <button type="button" onClick={() => setIsAddAddressOpen(false)} className="text-gray-400 hover:text-red-500 font-bold text-xs uppercase">Close</button>
                             </div>
 
-                            <div className="space-y-4 mb-8">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Full Name</label>
-                                        <input
-                                            required
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all"
-                                            value={newAddress.full_name}
-                                            onChange={(e) => setNewAddress({ ...newAddress, full_name: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Phone</label>
-                                        <input
-                                            required
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all"
-                                            value={newAddress.phone}
-                                            onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Address Line 1</label>
-                                    <input
+                            <div className="space-y-6 mb-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Input
+                                        label="Full Name"
+                                        name="name"
                                         required
-                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all"
-                                        value={newAddress.address_line1}
-                                        onChange={(e) => setNewAddress({ ...newAddress, address_line1: e.target.value })}
+                                        placeholder="e.g. Rahul Sharma"
+                                        icon={<User size={18} />}
+                                        value={newAddress.name}
+                                        onChange={(e) => handleFieldChange('name', e.target.value)}
+                                        onBlur={(e) => handleFieldBlur('name', e.target.value)}
+                                        error={fieldErrors.name}
                                     />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase">City</label>
-                                        <input
+                                    <Input
+                                        label="Mobile Number"
+                                        name="phone"
+                                        required
+                                        placeholder="10-digit number"
+                                        value={newAddress.phone}
+                                        onChange={(e) => handleFieldChange('phone', e.target.value)}
+                                        onBlur={(e) => handleFieldBlur('phone', e.target.value)}
+                                        error={fieldErrors.phone}
+                                    />
+                                    <div className="md:col-span-2">
+                                        <Input
+                                            label="Address Line"
+                                            name="line1"
                                             required
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all"
-                                            value={newAddress.city}
-                                            onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                                            placeholder="Flat, House No, Building, Apartment"
+                                            icon={<MapPin size={18} />}
+                                            value={newAddress.line1}
+                                            onChange={(e) => handleFieldChange('line1', e.target.value)}
+                                            onBlur={(e) => handleFieldBlur('line1', e.target.value)}
+                                            error={fieldErrors.line1}
                                         />
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Pincode</label>
-                                        <input
-                                            required
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-primary transition-all"
-                                            value={newAddress.postal_code}
-                                            onChange={(e) => setNewAddress({ ...newAddress, postal_code: e.target.value })}
-                                        />
+                                    <Input
+                                        label="City"
+                                        name="city"
+                                        required
+                                        placeholder="Your City"
+                                        icon={<Building size={18} />}
+                                        value={newAddress.city}
+                                        onChange={(e) => handleFieldChange('city', e.target.value)}
+                                        onBlur={(e) => handleFieldBlur('city', e.target.value)}
+                                        error={fieldErrors.city}
+                                    />
+                                    <Input
+                                        label="State"
+                                        name="state"
+                                        required
+                                        placeholder="Your State"
+                                        icon={<MapPin size={18} />}
+                                        value={newAddress.state}
+                                        onChange={(e) => handleFieldChange('state', e.target.value)}
+                                        onBlur={(e) => handleFieldBlur('state', e.target.value)}
+                                        error={fieldErrors.state}
+                                    />
+                                    <Input
+                                        label="Pincode"
+                                        name="pincode"
+                                        required
+                                        placeholder="6-digit code"
+                                        icon={<Shield size={18} />}
+                                        value={newAddress.pincode}
+                                        onChange={(e) => handleFieldChange('pincode', e.target.value)}
+                                        onBlur={(e) => handleFieldBlur('pincode', e.target.value)}
+                                        error={fieldErrors.pincode}
+                                    />
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Address Type<span className="text-red-500 ml-1">*</span></label>
+                                        <div className="flex gap-2">
+                                            {['HOME', 'WORK'].map((type) => (
+                                                <button
+                                                    key={type}
+                                                    type="button"
+                                                    onClick={() => setNewAddress({ ...newAddress, type })}
+                                                    className={`flex-1 py-3 rounded-xl text-[10px] font-black tracking-widest transition-all border-2 ${newAddress.type === type ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200'}`}
+                                                >
+                                                    {type}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

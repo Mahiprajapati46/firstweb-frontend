@@ -209,9 +209,14 @@ const Home = () => {
             {/* ─── Category Navigation (Executive Grid) ─── */}
             <section className="section-spacing">
                 <div className="premium-container">
-                    <div className="flex flex-col items-center text-center mb-12">
-                        <span className="text-accent text-[11px] font-black uppercase tracking-[0.4em] mb-4">Core Directory</span>
-                        <h2 className="text-3xl md:text-4xl font-black text-primary tracking-tighter">Marketplace Categorization</h2>
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
+                        <div className="flex flex-col items-center md:items-start text-center md:text-left">
+                            <span className="text-accent text-[11px] font-black uppercase tracking-[0.4em] mb-4">Core Directory</span>
+                            <h2 className="text-3xl md:text-4xl font-black text-primary tracking-tighter">Marketplace Categorization</h2>
+                        </div>
+                        <Link to="/categories" className="btn-boutique-outline flex items-center gap-2 group">
+                            See All Categories <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        </Link>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">

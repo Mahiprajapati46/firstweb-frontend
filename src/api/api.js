@@ -25,8 +25,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            // Handle unauthorized access (e.g., redirect to login)
+        // 🛡️ Prevent hard-redirect loops and disappearing errors during login
+        const isLoginRequest = error.config?.url?.includes('/auth/login');
+        const isLoginPage = window.location.pathname === '/login';
+
+        if (error.response?.status === 401 && !isLoginRequest && !isLoginPage) {
+            // Only clear and redirect if we are NOT on the login page and NOT attempting to login
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';

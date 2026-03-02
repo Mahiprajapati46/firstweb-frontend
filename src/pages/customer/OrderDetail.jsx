@@ -15,10 +15,13 @@ import {
     XCircle,
     CheckCircle2,
     ShoppingBag,
-    ShieldCheck
+    ShieldCheck,
+    Sparkles,
+    Star
 } from 'lucide-react';
 import customerApi from '../../api/customer';
 import toast from 'react-hot-toast';
+import ReviewModal from '../../components/customer/ReviewModal';
 
 // Simple Premium Modal Component
 const CancelModal = ({ isOpen, onClose, onSubmit, loading, stripePortion }) => {
@@ -157,6 +160,8 @@ const OrderDetail = () => {
     const [actionLoading, setActionLoading] = useState(false);
     const [showReturnModal, setShowReturnModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
+    const [selectedItemForReview, setSelectedItemForReview] = useState(null);
+    const [myReviews, setMyReviews] = useState([]);
 
     useEffect(() => {
         fetchOrderDetail();
@@ -176,6 +181,21 @@ const OrderDetail = () => {
             if (!isSilent) setLoading(false);
         }
     };
+
+    const fetchMyReviews = async () => {
+        try {
+            const res = await customerApi.getMyReviews();
+            if (res.data) setMyReviews(res.data);
+        } catch (error) {
+            console.error('Fetch Reviews Error:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (order?.status === 'DELIVERED') {
+            fetchMyReviews();
+        }
+    }, [order?.status]);
 
     const handleCancelOrder = () => {
         const walletPortion = order?.pricing?.amount_paid_via_wallet || 0;
@@ -404,6 +424,36 @@ const OrderDetail = () => {
                                                     </div>
                                                 ) : null}
                                                 <p className="text-xs text-gray-400 mt-0.5">Quantity: {item.quantity}</p>
+
+                                                {status === 'DELIVERED' && (
+                                                    <div className="mt-3">
+                                                        {myReviews.find(r => r.order_item_id === item.order_item_id) ? (
+                                                            <div className="bg-emerald-50/30 rounded-lg p-3 border border-emerald-100/50 mb-2">
+                                                                <div className="flex items-center gap-2 mb-1.5">
+                                                                    <div className="flex gap-0.5 text-emerald-500">
+                                                                        {[...Array(5)].map((_, i) => (
+                                                                            <Star key={i} size={10} fill={i < myReviews.find(r => r.order_item_id === item.order_item_id).rating ? "currentColor" : "none"} />
+                                                                        ))}
+                                                                    </div>
+                                                                    <span className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest">Your Experience</span>
+                                                                </div>
+                                                                <p className="text-[11px] text-gray-600 line-clamp-2 italic">
+                                                                    "{myReviews.find(r => r.order_item_id === item.order_item_id).comment}"
+                                                                </p>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedItemForReview(item);
+                                                                    setShowReviewModal(true);
+                                                                }}
+                                                                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-600 hover:text-white transition-all w-fit border border-emerald-100"
+                                                            >
+                                                                <Star size={12} /> Rate Item
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-base font-bold text-gray-900">₹{(item.price * item.quantity).toLocaleString()}</p>
@@ -536,6 +586,15 @@ const OrderDetail = () => {
                 onClose={() => setShowReturnModal(false)}
                 onSubmit={handleReturnSubmit}
                 loading={actionLoading}
+            />
+            <ReviewModal
+                isOpen={!!selectedItemForReview}
+                onClose={() => setSelectedItemForReview(null)}
+                orderItem={selectedItemForReview}
+                onSuccess={() => {
+                    fetchMyReviews();
+                    fetchOrderDetail(true);
+                }}
             />
         </div>
     );

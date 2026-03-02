@@ -77,23 +77,37 @@ const Products = () => {
         }
     };
 
-    const handleSubmitForApproval = async (productId) => {
+    const handleSubmitForApproval = async (product) => {
+        if (!product.stats?.variant_count || product.stats.variant_count === 0) {
+            toast.error('Add at least one variant before submitting for approval');
+            navigate(`/merchant/products/${product._id}/variants`);
+            return;
+        }
+
         try {
-            await merchantApi.submitProduct(productId);
+            await merchantApi.submitProduct(product._id);
             toast.success('Product submitted for approval');
             fetchProducts();
         } catch (error) {
-            toast.error(error.message || 'Submission failed');
+            const errorMsg = error.message || (typeof error === 'string' ? error : 'Submission failed');
+            toast.error(errorMsg);
         }
     };
 
-    const handleResubmit = async (productId) => {
+    const handleResubmit = async (product) => {
+        if (!product.stats?.variant_count || product.stats.variant_count === 0) {
+            toast.error('Add at least one variant before resubmitting');
+            navigate(`/merchant/products/${product._id}/variants`);
+            return;
+        }
+
         try {
-            await merchantApi.resubmitProduct(productId);
+            await merchantApi.resubmitProduct(product._id);
             toast.success('Product resubmitted for approval');
             fetchProducts();
         } catch (error) {
-            toast.error(error.message || 'Resubmission failed');
+            const errorMsg = error.message || (typeof error === 'string' ? error : 'Resubmission failed');
+            toast.error(errorMsg);
         }
     };
 
@@ -312,7 +326,7 @@ const Products = () => {
 
                                                 {product.status === 'DRAFT' && (
                                                     <button
-                                                        onClick={() => handleSubmitForApproval(product._id)}
+                                                        onClick={() => handleSubmitForApproval(product)}
                                                         className="p-2.5 text-green-600 hover:bg-green-50 rounded-xl transition-all"
                                                         title="Deploy to Moderation"
                                                     >
@@ -322,7 +336,7 @@ const Products = () => {
 
                                                 {product.status === 'REJECTED' && (
                                                     <button
-                                                        onClick={() => handleResubmit(product._id)}
+                                                        onClick={() => handleResubmit(product)}
                                                         className="p-2.5 text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
                                                         title="Re-deploy Asset"
                                                     >

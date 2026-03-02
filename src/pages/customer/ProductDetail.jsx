@@ -29,6 +29,8 @@ const ProductDetail = () => {
     const [quantity, setQuantity] = useState(1);
     const [activeImage, setActiveImage] = useState(0);
     const [selectedAttributes, setSelectedAttributes] = useState({});
+    const [reviews, setReviews] = useState([]);
+    const [reviewsLoading, setReviewsLoading] = useState(true);
 
     useEffect(() => {
         const fetchProductData = async () => {
@@ -39,6 +41,9 @@ const ProductDetail = () => {
                     setProduct(response.data.product);
                     const fetchedVariants = response.data.variants || [];
                     setVariants(fetchedVariants);
+
+                    // Fetch reviews using Product ID
+                    fetchReviews(response.data.product._id);
 
                     const defaultVariant = response.data.default_variant || fetchedVariants[0];
                     setSelectedVariant(defaultVariant);
@@ -55,6 +60,21 @@ const ProductDetail = () => {
         };
         fetchProductData();
     }, [slug, navigate]);
+
+    const fetchReviews = async (productId) => {
+        if (!productId) return;
+        try {
+            setReviewsLoading(true);
+            const response = await customerApi.getProductReviews(productId);
+            if (response.success && response.data) {
+                setReviews(response.data);
+            }
+        } catch (error) {
+            console.error('Fetch Reviews Error:', error);
+        } finally {
+            setReviewsLoading(false);
+        }
+    };
 
     const handleAddToCart = async () => {
         if (!user) {
@@ -349,6 +369,85 @@ const ProductDetail = () => {
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* Reviews Section */}
+            <div className="max-w-7xl mx-auto px-4 md:px-6 pt-20">
+                <div className="border-t border-gray-100 pt-16">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                        <div>
+                            <h2 className="text-2xl font-black text-primary italic mb-2">Verified Feedback</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Digital Reputation & Client Dialogue</p>
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <div className="text-right">
+                                <p className="text-3xl font-black text-primary italic">{(product.stats?.average_rating || 0).toFixed(1)}</p>
+                                <div className="flex gap-0.5 text-accent mt-1">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star key={i} size={14} fill={i < Math.round(product.stats?.average_rating || 0) ? "currentColor" : "none"} />
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="h-12 w-px bg-gray-100"></div>
+                            <div>
+                                <p className="text-xl font-black text-primary">{product.stats?.total_reviews || 0}</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Reviews</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {reviewsLoading ? (
+                        <div className="space-y-6">
+                            {[1, 2, 3].map(i => <div key={i} className="h-32 bg-gray-50 rounded-3xl animate-pulse"></div>)}
+                        </div>
+                    ) : reviews.length === 0 ? (
+                        <div className="bg-gray-50/50 rounded-3xl p-16 text-center border border-gray-100">
+                            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-primary/20 mx-auto mb-6">
+                                <Star size={32} />
+                            </div>
+                            <p className="text-[11px] font-black uppercase tracking-widest text-primary/40 italic">Signature feed is currently empty</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {reviews.map((review) => (
+                                <div key={review._id} className="bg-white p-8 rounded-3xl border border-gray-100 hover:shadow-xl hover:shadow-primary/5 transition-all group">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-primary/5 rounded-xl flex items-center justify-center text-primary font-black italic text-sm">
+                                                {review.user_id?.full_name?.charAt(0) || 'U'}
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-primary">{review.user_id?.full_name || 'Verified Client'}</h4>
+                                                <div className="flex gap-0.5 text-accent">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Star key={i} size={10} fill={i < review.rating ? "currentColor" : "none"} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                                            {new Date(review.createdAt).toLocaleDateString([], { month: 'short', year: 'numeric' })}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 leading-relaxed italic border-l-2 border-gray-50 pl-4">
+                                        "{review.comment}"
+                                    </p>
+
+                                    {review.merchant_reply && (
+                                        <div className="mt-6 pt-6 border-t border-gray-50">
+                                            <p className="text-[9px] font-black text-accent uppercase tracking-widest mb-2 flex items-center gap-2">
+                                                Official Response <ShieldCheck size={12} />
+                                            </p>
+                                            <p className="text-xs text-gray-500 font-medium italic pl-4 border-l border-accent/20">
+                                                {review.merchant_reply.comment}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -18,6 +18,9 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { toast } from 'react-hot-toast';
 import ChangeRequestModal from '../../components/merchant/ChangeRequestModal';
+import SearchableSelect from '../../components/ui/SearchableSelect';
+import { productSchemas } from '../../validations/product.schema';
+import { z } from 'zod';
 
 const ProductForm = () => {
     const { id } = useParams();
@@ -29,6 +32,7 @@ const ProductForm = () => {
     const [fetching, setFetching] = useState(isEdit);
     const [productStatus, setProductStatus] = useState('DRAFT');
     const [showChangeModal, setShowChangeModal] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -76,9 +80,57 @@ const ProductForm = () => {
         }
     };
 
+    const handleBlur = (name, value) => {
+        // Prepare data for validation (mirroring formData structure)
+        const currentData = { ...formData };
+        if (name.includes('.')) {
+            const [parent, child] = name.split('.');
+            currentData[parent] = { ...currentData[parent], [child]: value };
+        } else {
+            currentData[name] = value;
+        }
+
+        // Manual addition of image count check for UX
+        const dataToValidate = { ...currentData, images: previewImages };
+
+        const result = productSchemas.create.safeParse(dataToValidate);
+
+        if (!result.success) {
+            const fieldIssue = result.error.issues.find(issue => {
+                const path = issue.path.join('.');
+                return path === name;
+            });
+
+            if (fieldIssue) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    [name]: fieldIssue.message
+                }));
+            }
+        }
+    };
+
     const handleImageChange = (e) => {
         const files = Array.from(e.target.files);
-        const newFiles = files.map(file => {
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+
+        const validFiles = [];
+        for (const file of files) {
+            if (!ALLOWED_TYPES.includes(file.type)) {
+                toast.error(`${file.name} is not a supported image format`);
+                continue;
+            }
+            if (file.size > MAX_FILE_SIZE) {
+                toast.error(`${file.name} is too large (max 5MB)`);
+                continue;
+            }
+            validFiles.push(file);
+        }
+
+        if (validFiles.length === 0) return;
+
+        const newFiles = validFiles.map(file => {
             file.previewUrl = URL.createObjectURL(file);
             return file;
         });
@@ -104,7 +156,6 @@ const ProductForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            setLoading(true);
             const data = new FormData();
             data.append('title', formData.title);
             data.append('description', formData.description);
@@ -114,6 +165,23 @@ const ProductForm = () => {
             data.append('pricing[min_price]', formData.pricing.min_price);
             data.append('pricing[max_price]', formData.pricing.max_price || formData.pricing.min_price);
             data.append('pricing[currency]', formData.pricing.currency);
+
+            // 🛡️ Industrial Frontend Validation
+            const validationData = { ...formData, images: previewImages };
+            const result = productSchemas.create.safeParse(validationData);
+
+            if (!result.success) {
+                const errors = {};
+                result.error.issues.forEach(issue => {
+                    const path = issue.path.join('.');
+                    errors[path] = issue.message;
+                });
+                setFieldErrors(errors);
+                toast.error("Please correct the validation errors.");
+                return;
+            }
+
+            setLoading(true);
 
             images.forEach(image => {
                 data.append('images', image);
@@ -235,12 +303,19 @@ const ProductForm = () => {
                                 <input
                                     type="text"
                                     placeholder="e.g., Premium Leather Jacket"
-                                    className={`w-full px-8 py-5 bg-gray-50/50 border border-gray-100 rounded-2xl text-sm font-black tracking-tight text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all placeholder:text-gray-300 ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-50 cursor-not-allowed pr-14' : ''}`}
+                                    className={`w-full px-8 py-5 bg-gray-50/50 border ${fieldErrors.title ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-sm font-black tracking-tight text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all placeholder:text-gray-300 ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-50 cursor-not-allowed pr-14' : ''}`}
                                     value={formData.title}
-                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, title: e.target.value });
+                                        if (fieldErrors.title) setFieldErrors(prev => {
+                                            const newE = { ...prev }; delete newE.title; return newE;
+                                        });
+                                    }}
+                                    onBlur={(e) => handleBlur('title', e.target.value)}
                                     required
                                     disabled={['APPROVED', 'PENDING'].includes(productStatus)}
                                 />
+                                {fieldErrors.title && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold italic underline decoration-red-200">! {fieldErrors.title}</p>}
                                 {['APPROVED', 'PENDING'].includes(productStatus) && (
                                     <Lock size={18} className="absolute right-6 bottom-5 text-accent" />
                                 )}
@@ -250,13 +325,20 @@ const ProductForm = () => {
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 block">Description</label>
                                 <div className="relative">
                                     <textarea
-                                        className={`w-full px-8 py-6 bg-gray-50/50 border border-gray-100 rounded-3xl text-sm font-medium text-gray-600 leading-relaxed focus:ring-4 focus:ring-primary/5 focus:border-primary min-h-[200px] transition-all placeholder:text-gray-300 italic ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-50 cursor-not-allowed pr-14' : ''}`}
+                                        className={`w-full px-8 py-6 bg-gray-50/50 border ${fieldErrors.description ? 'border-red-500' : 'border-gray-100'} rounded-3xl text-sm font-medium text-gray-600 leading-relaxed focus:ring-4 focus:ring-primary/5 focus:border-primary min-h-[200px] transition-all placeholder:text-gray-300 italic ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-50 cursor-not-allowed pr-14' : ''}`}
                                         placeholder="Describe your product materials, features, and care instructions..."
                                         value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, description: e.target.value });
+                                            if (fieldErrors.description) setFieldErrors(prev => {
+                                                const newE = { ...prev }; delete newE.description; return newE;
+                                            });
+                                        }}
+                                        onBlur={(e) => handleBlur('description', e.target.value)}
                                         required
                                         disabled={['APPROVED', 'PENDING'].includes(productStatus)}
                                     />
+                                    {fieldErrors.description && <p className="text-[10px] text-red-500 mt-2 ml-2 font-bold italic underline decoration-red-200">! {fieldErrors.description}</p>}
                                     {['APPROVED', 'PENDING'].includes(productStatus) && (
                                         <Lock size={18} className="absolute right-6 top-6 text-accent" />
                                     )}
@@ -274,10 +356,13 @@ const ProductForm = () => {
                                 </div>
                                 <h2 className="text-xl font-black text-primary tracking-tight">Product Images</h2>
                             </div>
-                            <label className="cursor-pointer bg-primary text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent hover:shadow-xl transition-all active:scale-95">
-                                Upload Images
-                                <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
-                            </label>
+                            <div className="flex flex-col items-end gap-2">
+                                <label className={`cursor-pointer ${fieldErrors.images ? 'bg-red-500' : 'bg-primary'} text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent hover:shadow-xl transition-all active:scale-95`}>
+                                    Upload Images
+                                    <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
+                                </label>
+                                {fieldErrors.images && <span className="text-[9px] text-red-500 font-bold uppercase italic tracking-widest">{fieldErrors.images}</span>}
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -325,65 +410,57 @@ const ProductForm = () => {
                                 <input
                                     type="number"
                                     placeholder="0"
-                                    className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                    className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors['pricing.min_price'] ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
                                     value={formData.pricing.min_price}
-                                    onChange={(e) => setFormData({ ...formData, pricing: { ...formData.pricing, min_price: e.target.value } })}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, pricing: { ...formData.pricing, min_price: e.target.value } });
+                                        if (fieldErrors['pricing.min_price']) setFieldErrors(prev => { const n = { ...prev }; delete n['pricing.min_price']; return n; });
+                                    }
+                                    }
+                                    onBlur={(e) => handleBlur('pricing.min_price', e.target.value)}
                                     required
                                 />
+                                {fieldErrors['pricing.min_price'] && <p className="text-[10px] text-red-500 mt-1 font-bold italic underline decoration-red-100">! {fieldErrors['pricing.min_price']}</p>}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Max Price (Optional)</label>
                                 <input
                                     type="number"
                                     placeholder="0"
-                                    className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                    className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors['pricing.max_price'] ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
                                     value={formData.pricing.max_price}
-                                    onChange={(e) => setFormData({ ...formData, pricing: { ...formData.pricing, max_price: e.target.value } })}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, pricing: { ...formData.pricing, max_price: e.target.value } });
+                                        if (fieldErrors['pricing.max_price']) setFieldErrors(prev => { const n = { ...prev }; delete n['pricing.max_price']; return n; });
+                                    }}
+                                    onBlur={(e) => handleBlur('pricing.max_price', e.target.value)}
                                 />
+                                {fieldErrors['pricing.max_price'] && <p className="text-[10px] text-red-500 mt-1 font-bold italic underline decoration-red-100">! {fieldErrors['pricing.max_price']}</p>}
                             </div>
                         </div>
                     </div>
 
                     {/* Taxonomy/Categories */}
                     <div className="card-premium p-10 space-y-8">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-primary border border-gray-100">
-                                <Layout size={20} />
-                            </div>
-                            <h2 className="text-xl font-black text-primary tracking-tight">Categories</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-3">
-                            {categories.map((cat) => (
-                                <button
-                                    key={cat._id}
-                                    type="button"
-                                    onClick={() => {
-                                        if (['APPROVED', 'PENDING'].includes(productStatus)) {
-                                            toast.error('Categories are locked. Request a change.');
-                                            return;
-                                        }
-                                        const isSelected = formData.category_ids.includes(cat._id);
-                                        if (isSelected) {
-                                            setFormData({ ...formData, category_ids: formData.category_ids.filter(id => id !== cat._id) });
-                                        } else {
-                                            setFormData({ ...formData, category_ids: [...formData.category_ids, cat._id] });
-                                        }
-                                    }}
-                                    className={`relative px-6 py-4 rounded-xl border-l-4 transition-all text-[11px] font-black uppercase tracking-widest text-left flex items-center justify-between group ${formData.category_ids.includes(cat._id)
-                                        ? 'bg-primary border-accent text-white shadow-xl shadow-primary/10'
-                                        : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-white hover:border-primary/20 hover:text-primary'
-                                        } ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                >
-                                    {cat.name}
-                                    {formData.category_ids.includes(cat._id) ? (
-                                        <Check size={14} className="text-accent" />
-                                    ) : (
-                                        ['APPROVED', 'PENDING'].includes(productStatus) && <Lock size={12} className="text-accent opacity-50" />
-                                    )}
-                                </button>
-                            ))}
-                        </div>
+                        <SearchableSelect
+                            options={categories}
+                            selectedValues={formData.category_ids}
+                            onSelect={(id) => {
+                                if (['APPROVED', 'PENDING'].includes(productStatus)) {
+                                    toast.error('Categories are locked. Request a change.');
+                                    return;
+                                }
+                                setFormData({ ...formData, category_ids: [...formData.category_ids, id] });
+                            }}
+                            onRemove={(id) => {
+                                if (['APPROVED', 'PENDING'].includes(productStatus)) {
+                                    toast.error('Categories are locked. Request a change.');
+                                    return;
+                                }
+                                setFormData({ ...formData, category_ids: formData.category_ids.filter(val => val !== id) });
+                            }}
+                            disabled={['APPROVED', 'PENDING'].includes(productStatus)}
+                        />
                     </div>
 
                     {/* Form Actions */}

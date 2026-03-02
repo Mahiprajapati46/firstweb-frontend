@@ -69,29 +69,53 @@ const CommissionTable = () => {
     const { summary, transactions, pagination } = data;
     const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
+    const StatusBadge = ({ status }) => {
+        const config = {
+            'REFUNDED': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100' },
+            'REFUND_INITIATED': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100' },
+            'DELIVERED': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
+            'CONFIRMED': { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
+            'PENDING': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100' },
+            'CANCELLED': { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-100' }
+        };
+        const s = config[status] || { bg: 'bg-gray-50', text: 'text-gray-400', border: 'border-gray-100' };
+        return (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${s.bg} ${s.text} ${s.border}`}>
+                {status || 'Unknown'}
+            </span>
+        );
+    };
+
     return (
         <div className="space-y-6">
             {/* Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <StatCard
                     icon={TrendingUp}
                     label="Total Collected"
                     value={fmt(summary.total_collected)}
-                    sub={`${summary.total_transactions} transactions`}
+                    sub={`${summary.total_orders} Orders (Finalized)`}
                     color="#c19a6b"
+                />
+                <StatCard
+                    icon={Clock}
+                    label="Pipeline"
+                    value={fmt(summary.total_pending)}
+                    sub={`${summary.pending_orders} Orders (Pending)`}
+                    color="#f59e0b"
                 />
                 <StatCard
                     icon={Calendar}
                     label="This Month"
                     value={fmt(summary.this_month)}
-                    sub={`${summary.month_count} orders`}
+                    sub={`${summary.month_count} orders (Delivered)`}
                     color="#6366f1"
                 />
                 <StatCard
                     icon={BarChart3}
                     label="Avg Per Order"
                     value={fmt(summary.avg_per_order)}
-                    sub="Average commission"
+                    sub="On delivered orders"
                     color="#10b981"
                 />
             </div>
@@ -103,20 +127,20 @@ const CommissionTable = () => {
                         <Receipt size={14} />
                         Per-Order Breakdown
                     </h4>
-                    <span className="text-xs font-semibold text-gray-400">{pagination.total} records</span>
+                    <span className="text-xs font-semibold text-gray-400">{pagination.total} Total Orders</span>
                 </div>
                 {transactions.length === 0 ? (
                     <div className="py-16 text-center text-gray-400">
                         <TrendingUp size={32} className="mx-auto mb-3 opacity-30" />
                         <p className="font-semibold text-sm">No commission records yet</p>
-                        <p className="text-xs mt-1">Commission is deducted when payments are confirmed.</p>
+                        <p className="text-xs mt-1">Commission is finalized when orders are delivered.</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead className="bg-gray-50/50">
                                 <tr>
-                                    {['Merchant', 'Order #', 'Order Total', 'Commission', 'Date'].map(h => (
+                                    {['Merchant', 'Order #', 'Status', 'Order Total', 'Commission', 'Date'].map(h => (
                                         <th key={h} className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400">{h}</th>
                                     ))}
                                 </tr>
@@ -135,9 +159,21 @@ const CommissionTable = () => {
                                         <td className="px-5 py-3.5">
                                             <span className="font-mono text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-lg">#{tx.order_number}</span>
                                         </td>
+                                        <td className="px-5 py-3.5">
+                                            <StatusBadge status={tx.order_status} />
+                                        </td>
                                         <td className="px-5 py-3.5 font-semibold text-gray-700">{fmt(tx.order_total)}</td>
                                         <td className="px-5 py-3.5">
-                                            <span className="font-black text-[#c19a6b] bg-[#c19a6b]/10 px-2.5 py-1 rounded-lg text-xs">{fmt(tx.commission_amount)}</span>
+                                            <div className="flex flex-col items-start gap-1">
+                                                <span className="font-black text-[#c19a6b] bg-[#c19a6b]/10 px-2.5 py-1 rounded-lg text-xs">{fmt(tx.commission_amount)}</span>
+                                                {['CANCELLED', 'REFUNDED', 'RETURNED'].includes(tx.order_status) ? (
+                                                    <span className="text-[9px] font-black uppercase tracking-tighter text-gray-400">Voided</span>
+                                                ) : (
+                                                    <span className={`text-[9px] font-black uppercase tracking-tighter ${tx.is_finalized ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                        {tx.is_finalized ? 'Finalized' : 'Projected'}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-5 py-3.5 text-gray-400 text-xs font-medium">
                                             {new Date(tx.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -276,7 +312,7 @@ const AdminSettings = () => {
                                     <div className="p-2 bg-[#c19a6b15] text-[#c19a6b] rounded-lg"><Percent size={20} /></div>
                                     <div>
                                         <h3 className="font-bold text-lg text-primary">Marketplace Commission</h3>
-                                        <p className="text-sm text-gray-400">Platform fee percentage taken from each transition.</p>
+                                        <p className="text-sm text-gray-400">Platform fee percentage taken from each transaction.</p>
                                     </div>
                                 </div>
                                 <div className="relative max-w-xs">

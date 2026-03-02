@@ -4,6 +4,7 @@ import merchantApi from '../../api/merchant';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import { toast } from 'react-hot-toast';
+import SearchableSelect from '../ui/SearchableSelect';
 
 const ChangeRequestModal = ({
     isOpen,
@@ -19,7 +20,7 @@ const ChangeRequestModal = ({
         description: '',
         category_ids: [],
         sku: '',
-        reason: ''
+        justification: ''
     });
 
     useEffect(() => {
@@ -29,7 +30,7 @@ const ChangeRequestModal = ({
                 description: currentData.description || '',
                 category_ids: currentData.category_ids || [],
                 sku: currentData.sku || '',
-                reason: ''
+                justification: ''
             });
         }
     }, [isOpen, currentData]);
@@ -38,8 +39,8 @@ const ChangeRequestModal = ({
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!proposedData.reason) {
-            toast.error('Please provide a reason for this change request');
+        if (!proposedData.justification) {
+            toast.error('Please provide a justification for this proposal');
             return;
         }
 
@@ -68,7 +69,7 @@ const ChangeRequestModal = ({
                 entity_type: entityType,
                 entity_id: entityId,
                 requested_changes,
-                reason: proposedData.reason
+                reason: proposedData.justification
             });
 
             toast.success('Change request submitted successfully');
@@ -94,8 +95,8 @@ const ChangeRequestModal = ({
                             <Info size={24} />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Modify {isProduct ? 'Product' : 'Variant'} Request</h2>
-                            <p className="text-slate-500 font-medium text-sm lowercase mt-0.5">Compare current values and propose your updates for admin review.</p>
+                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Request Change</h2>
+                            <p className="text-slate-500 font-medium text-sm lowercase mt-0.5">Check the current details and send your changes for review.</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-3 hover:bg-white border border-transparent hover:border-slate-200 rounded-2xl transition-all group">
@@ -159,7 +160,7 @@ const ChangeRequestModal = ({
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 mb-2 px-1">
                                 <Check size={14} className="text-primary" />
-                                <span className="text-[10px] font-black text-primary uppercase tracking-widest">Proposed Updates (Editable)</span>
+                                <span className="text-[10px] font-black text-primary uppercase tracking-widest">Your Changes</span>
                             </div>
 
                             <div className="bg-white border border-primary/10 rounded-3xl p-6 space-y-6 shadow-xl shadow-primary/5 ring-4 ring-primary/5">
@@ -182,30 +183,14 @@ const ChangeRequestModal = ({
                                                 onChange={(e) => setProposedData({ ...proposedData, description: e.target.value })}
                                             />
                                         </div>
-                                        <div>
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 ml-1">New Categories</label>
-                                            <div className="grid grid-cols-2 gap-2 mt-2">
-                                                {categories.map((cat) => (
-                                                    <button
-                                                        key={cat._id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const isSelected = proposedData.category_ids.includes(cat._id);
-                                                            if (isSelected) {
-                                                                setProposedData({ ...proposedData, category_ids: proposedData.category_ids.filter(id => id !== cat._id) });
-                                                            } else {
-                                                                setProposedData({ ...proposedData, category_ids: [...proposedData.category_ids, cat._id] });
-                                                            }
-                                                        }}
-                                                        className={`relative px-3 py-2 rounded-xl border transition-all text-[10px] font-bold text-left ${proposedData.category_ids.includes(cat._id)
-                                                            ? 'bg-primary border-primary text-white shadow-md shadow-primary/20'
-                                                            : 'bg-slate-50 border-transparent text-slate-600 hover:bg-slate-100'
-                                                            }`}
-                                                    >
-                                                        {cat.name}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                        <div className="space-y-4">
+                                            <SearchableSelect
+                                                options={categories}
+                                                selectedValues={proposedData.category_ids}
+                                                onSelect={(id) => setProposedData({ ...proposedData, category_ids: [...proposedData.category_ids, id] })}
+                                                onRemove={(id) => setProposedData({ ...proposedData, category_ids: proposedData.category_ids.filter(val => val !== id) })}
+                                                label="New Categories"
+                                            />
                                         </div>
                                     </>
                                 ) : (
@@ -224,19 +209,20 @@ const ChangeRequestModal = ({
                     </div>
 
                     {/* Reason for Change */}
-                    <div className="bg-amber-50 rounded-3xl p-8 border border-amber-100 space-y-4">
-                        <div className="flex items-center gap-2">
-                            <AlertCircle size={18} className="text-amber-600" />
-                            <h3 className="text-sm font-black text-amber-900 uppercase tracking-wide">Requirement: Reason for Change</h3>
+                    <div className="bg-primary/5 rounded-[2rem] p-10 border border-primary/10 space-y-5 relative overflow-hidden">
+                        <div className="relative z-10 flex items-center gap-3">
+                            <AlertCircle size={20} className="text-primary" />
+                            <h3 className="text-sm font-black text-primary uppercase tracking-wider">Reason for Change</h3>
                         </div>
-                        <p className="text-xs text-amber-700 font-medium">Please explain why you are requesting these updates. This helps the admin approve your request faster.</p>
+                        <p className="relative z-10 text-xs text-slate-500 font-medium leading-relaxed">Please explain why you are making these changes. This helps the admin review your request faster.</p>
                         <textarea
                             required
-                            placeholder="e.g., Updating materials list to reflect new supplier standards..."
-                            className="w-full px-5 py-4 bg-white border border-amber-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-amber-200/50 outline-none transition-all h-24"
-                            value={proposedData.reason}
-                            onChange={(e) => setProposedData({ ...proposedData, reason: e.target.value })}
+                            placeholder="e.g., Refreshing SKU to align with our new inventory naming convention starting Spring 2026..."
+                            className="relative z-10 w-full px-8 py-6 bg-white border border-slate-100 rounded-[2rem] text-sm font-medium focus:ring-8 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all h-32 italic"
+                            value={proposedData.justification}
+                            onChange={(e) => setProposedData({ ...proposedData, justification: e.target.value })}
                         />
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-16 translate-x-16" />
                     </div>
                 </form>
 
@@ -254,9 +240,9 @@ const ChangeRequestModal = ({
                         type="button"
                         onClick={handleSubmit}
                         loading={loading}
-                        className="px-12 py-3 bg-primary hover:bg-accent text-white rounded-2xl font-black shadow-2xl shadow-primary/20 transition-all hover:-translate-y-0.5"
+                        className="px-12 py-5 bg-primary hover:bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/20 transition-all hover:-translate-y-1"
                     >
-                        Submit Request for Review
+                        Send Request
                     </Button>
                 </div>
             </div>

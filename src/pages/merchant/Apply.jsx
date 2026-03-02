@@ -1,11 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Store, ShoppingBag, CheckCircle, AlertCircle, Building, MapPin } from 'lucide-react';
-import merchantApi from '../../api/merchant';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import Input from '../../components/ui/Input';
+import merchantApi from '../../api/merchant';
+import { Store, ShoppingBag, CheckCircle, AlertCircle, Building, MapPin } from 'lucide-react';
 import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import { toast } from 'react-hot-toast';
+import { merchantSchemas } from '../../validations/merchant.schema';
+import { z } from 'zod';
+
+const getFieldData = (name, value, currentData) => {
+    if (name.startsWith('address.')) {
+        const field = name.split('.')[1];
+        return {
+            ...currentData,
+            address: {
+                ...currentData.address,
+                [field]: value
+            }
+        };
+    }
+    return { ...currentData, [name]: value };
+};
 
 const MerchantApply = () => {
     const { user } = useAuth();
@@ -29,6 +45,7 @@ const MerchantApply = () => {
     const [loading, setLoading] = useState(false);
     const [checking, setChecking] = useState(true);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [success, setSuccess] = useState(false);
 
     useEffect(() => {
@@ -61,29 +78,78 @@ const MerchantApply = () => {
     }, [user, navigate]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        let { name, value } = e.target;
 
-        if (name.startsWith('address.')) {
-            const field = name.split('.')[1];
-            setFormData(prev => ({
-                ...prev,
-                address: {
-                    ...prev.address,
-                    [field]: value
-                }
-            }));
-            return;
+        // 🛡️ Industrial Input Cleaning
+        if (name === 'business_phone') {
+            value = value.replace(/\D/g, '').slice(0, 10);
+        } else if (name === 'address.pincode') {
+            value = value.replace(/\D/g, '').slice(0, 6);
+        } else if (name === 'address.city' || name === 'address.state') {
+            // Stop numbers and symbols in City/State
+            value = value.replace(/[^a-zA-Z\s]/g, '');
         }
 
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData(prev => getFieldData(name, value, prev));
 
+        // Clear field error when user starts typing
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
+    };
+
+    const handleBlur = (e) => {
+        const { name, value } = e.target;
+        const currentData = getFieldData(name, value, formData);
+
+        // 🛡️ Deep Field Validation
+        const result = merchantSchemas.apply.safeParse(currentData);
+
+        if (!result.success) {
+            const fieldIssue = result.error.issues.find(issue => {
+                const path = issue.path.join('.');
+                return path === name;
+            });
+
+            if (fieldIssue) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    [name]: fieldIssue.message
+                }));
+                return; // 🛑 Found an error
+            }
+        }
+
+        // ✅ Clear error if field is now valid
+        setFieldErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[name];
+            return newErrors;
+        });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
+        setFieldErrors({});
+
+        // 🛡️ Industrial Frontend Validation
+        const result = merchantSchemas.apply.safeParse(formData);
+        if (!result.success) {
+            const errors = {};
+            result.error.issues.forEach(issue => {
+                const path = issue.path.join('.');
+                errors[path] = issue.message;
+            });
+            setFieldErrors(errors);
+            toast.error("Please correct the errors in the form.");
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -92,6 +158,12 @@ const MerchantApply = () => {
             setSuccess(true);
             setTimeout(() => navigate('/merchant/status', { state: { submitted: true } }), 2000);
         } catch (err) {
+            if (err.errors) {
+                const bErrors = {};
+                err.errors.forEach(e => { bErrors[e.field] = e.message; });
+                setFieldErrors(bErrors);
+            }
+            setError(err.message || 'Application submission failed.');
             toast.error(err.message || 'Application submission failed.');
         } finally {
             setLoading(false);
@@ -204,25 +276,31 @@ const MerchantApply = () => {
                                                         name="store_name"
                                                         value={formData.store_name}
                                                         onChange={handleChange}
+                                                        onBlur={handleBlur}
                                                         placeholder="e.g. Mahi Electronics"
                                                         required
                                                         className="text-lg font-medium"
                                                         icon={<Building size={18} />}
+                                                        error={fieldErrors.store_name}
                                                     />
                                                 </div>
                                             </div>
 
                                             <div>
-                                                <label className="block text-xs font-black uppercase tracking-widest text-primary mb-2 ml-1">Store Description</label>
+                                                <label className="block text-xs font-black uppercase tracking-widest text-primary mb-2 ml-1">
+                                                    Store Description<span className="text-red-500 ml-1">*</span>
+                                                </label>
                                                 <textarea
                                                     name="description"
                                                     value={formData.description}
                                                     onChange={handleChange}
+                                                    onBlur={handleBlur}
                                                     rows="3"
-                                                    className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-all resize-none shadow-sm placeholder:text-gray-300"
+                                                    className={`w-full px-5 py-4 bg-white border ${fieldErrors.description ? 'border-red-500' : 'border-gray-200'} rounded-2xl focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-all resize-none shadow-sm placeholder:text-gray-300`}
                                                     placeholder="Tell us about your products..."
                                                     required
                                                 ></textarea>
+                                                {fieldErrors.description && <p className="text-xs text-red-500 mt-1 ml-1">{fieldErrors.description}</p>}
                                             </div>
                                         </div>
 
@@ -235,19 +313,26 @@ const MerchantApply = () => {
                                                     labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1"
                                                     name="business_email"
                                                     type="email"
+                                                    required
                                                     value={formData.business_email}
                                                     onChange={handleChange}
+                                                    onBlur={handleBlur}
                                                     placeholder="support@merchant.com"
                                                     className="bg-gray-50 border-gray-100"
+                                                    error={fieldErrors.business_email}
                                                 />
                                                 <Input
                                                     label="Business Phone"
                                                     labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1"
                                                     name="business_phone"
+                                                    type="tel"
+                                                    required
                                                     value={formData.business_phone}
                                                     onChange={handleChange}
+                                                    onBlur={handleBlur}
                                                     placeholder="+91 98765 43210"
                                                     className="bg-gray-50 border-gray-100"
+                                                    error={fieldErrors.business_phone}
                                                 />
                                             </div>
                                         </div>
@@ -264,9 +349,11 @@ const MerchantApply = () => {
                                                     name="address.line1"
                                                     value={formData.address.line1}
                                                     onChange={handleChange}
+                                                    onBlur={handleBlur}
                                                     placeholder="Office 123, MG Road"
                                                     required
                                                     className="bg-gray-50 border-gray-100"
+                                                    error={fieldErrors['address.line1']}
                                                 />
                                                 <Input
                                                     label="Address Line 2"
@@ -274,15 +361,17 @@ const MerchantApply = () => {
                                                     name="address.line2"
                                                     value={formData.address.line2}
                                                     onChange={handleChange}
+                                                    onBlur={handleBlur}
                                                     placeholder="Landmark"
                                                     className="bg-gray-50 border-gray-100"
+                                                    error={fieldErrors['address.line2']}
                                                 />
                                             </div>
                                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                                <Input label="City" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.city" value={formData.address.city} onChange={handleChange} required className="bg-gray-50 border-gray-100" />
-                                                <Input label="State" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.state" value={formData.address.state} onChange={handleChange} required className="bg-gray-50 border-gray-100" />
-                                                <Input label="Pin Code" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.pincode" value={formData.address.pincode} onChange={handleChange} required className="bg-gray-50 border-gray-100" />
-                                                <Input label="Country" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.country" value={formData.address.country} onChange={handleChange} required className="bg-gray-50 border-gray-100" />
+                                                <Input label="City" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.city" value={formData.address.city} onChange={handleChange} onBlur={handleBlur} required className="bg-gray-50 border-gray-100" error={fieldErrors['address.city']} />
+                                                <Input label="State" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.state" value={formData.address.state} onChange={handleChange} onBlur={handleBlur} required className="bg-gray-50 border-gray-100" error={fieldErrors['address.state']} />
+                                                <Input label="Pin Code" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.pincode" value={formData.address.pincode} onChange={handleChange} onBlur={handleBlur} required className="bg-gray-50 border-gray-100" error={fieldErrors['address.pincode']} />
+                                                <Input label="Country" labelClassName="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1" name="address.country" value={formData.address.country} onChange={handleChange} onBlur={handleBlur} required className="bg-gray-50 border-gray-100" error={fieldErrors['address.country']} />
                                             </div>
                                         </div>
 

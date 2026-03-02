@@ -12,12 +12,14 @@ const customerApi = {
     },
 
     // Products
-    getProducts: async ({ page = 1, limit = 20, category } = {}) => {
+    getProducts: async ({ page = 1, limit = 20, category, minPrice, maxPrice } = {}) => {
         try {
             const params = new URLSearchParams();
             params.append('page', page);
             params.append('limit', limit);
             if (category) params.append('category', category);
+            if (minPrice) params.append('min_price', minPrice);
+            if (maxPrice) params.append('max_price', maxPrice);
 
             const response = await api.get(`/products?${params.toString()}`);
             return response.data;
@@ -38,6 +40,24 @@ const customerApi = {
     getProductReviews: async (productId) => {
         try {
             const response = await api.get(`/products/${productId}/reviews`);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    submitReview: async (reviewData) => {
+        try {
+            const response = await api.post('/customers/reviews', reviewData);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    getMyReviews: async () => {
+        try {
+            const response = await api.get('/customers/reviews');
             return response.data;
         } catch (error) {
             throw error.response?.data || error;
@@ -122,6 +142,15 @@ const customerApi = {
     deleteAddress: async (addressId) => {
         try {
             const response = await api.delete(`/customers/me/addresses/${addressId}`);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    updateAddress: async (addressId, addressData) => {
+        try {
+            const response = await api.patch(`/customers/me/addresses/${addressId}`, addressData);
             return response.data;
         } catch (error) {
             throw error.response?.data || error;

@@ -69,10 +69,10 @@ const ForgotPasswordPage = () => {
                         )}
 
                         <Input
-                            label="Corporate Email Address"
+                            label="Email Address"
                             type="email"
                             required
-                            placeholder="name@company.com"
+                            placeholder="name@example.com"
                             icon={<Mail size={18} className="text-gray-400" />}
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}

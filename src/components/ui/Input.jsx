@@ -1,12 +1,12 @@
 import React from 'react';
 import { twMerge } from 'tailwind-merge';
 
-const Input = ({ label, error, className, id, icon, ...props }) => {
+const Input = ({ label, error, className, id, icon, required, ...props }) => {
     return (
         <div className="space-y-1.5 w-full text-left">
             {label && (
-                <label htmlFor={id} className="block text-sm font-medium text-gray-700">
-                    {label}
+                <label htmlFor={id} className="block text-sm font-black uppercase tracking-wider text-primary ml-1">
+                    {label}{required && <span className="text-red-500 ml-1">*</span>}
                 </label>
             )}
             <div className="relative">

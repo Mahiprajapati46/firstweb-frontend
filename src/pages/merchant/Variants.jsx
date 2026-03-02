@@ -16,13 +16,15 @@ import {
     Clock,
     Lock,
     Boxes,
-    AlertCircle
+    AlertCircle,
+    GitPullRequest
 } from 'lucide-react';
 import merchantApi from '../../api/merchant';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { toast } from 'react-hot-toast';
 import ChangeRequestModal from '../../components/merchant/ChangeRequestModal';
+import { productSchemas } from '../../validations/product.schema';
 
 const Variants = () => {
     const { id } = useParams(); // Product ID
@@ -41,6 +43,7 @@ const Variants = () => {
         attributes: { size: '', color: '' },
         is_default: false
     });
+    const [fieldErrors, setFieldErrors] = useState({});
     const [selectedImages, setSelectedImages] = useState([]);
     const [imagePreviews, setImagePreviews] = useState([]);
     const [showChangeModal, setShowChangeModal] = useState(false);
@@ -93,6 +96,50 @@ const Variants = () => {
         setSelectedImages([]);
         setShowForm(true);
         setShowAdvanced(!!variant && !!variant.sku);
+        setFieldErrors({});
+    };
+
+    const handleBlur = (name, value) => {
+        const currentData = {
+            ...variantForm,
+            price: Number(variantForm.price),
+            stock: Number(variantForm.stock_quantity),
+            images: imagePreviews
+        };
+
+        // Handle nested attribute updates for validation data
+        if (name.startsWith('attributes.')) {
+            const attrKey = name.split('.')[1];
+            currentData.attributes = {
+                ...variantForm.attributes,
+                [attrKey]: value
+            };
+        }
+
+        const result = productSchemas.variant.safeParse(currentData);
+
+        if (!result.success) {
+            const fieldIssue = result.error.issues.find(issue => {
+                const path = issue.path.join('.');
+                // Map stock to stock_quantity for UI purposes
+                if (name === 'stock_quantity' && path === 'stock') return true;
+                return path === name;
+            });
+
+            if (fieldIssue) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    [name]: fieldIssue.message
+                }));
+            } else {
+                // Clear error if field is now valid
+                setFieldErrors(prev => {
+                    const next = { ...prev };
+                    delete next[name];
+                    return next;
+                });
+            }
+        }
     };
 
     const handleAttributeChange = (key, value) => {
@@ -113,10 +160,18 @@ const Variants = () => {
     };
 
     const removeAttribute = (key) => {
-        if (['size', 'color'].includes(key.toLowerCase())) return;
         const newAttrs = { ...variantForm.attributes };
         delete newAttrs[key];
         setVariantForm(prev => ({ ...prev, attributes: newAttrs }));
+
+        // Clear specific error for this attribute if it exists
+        if (fieldErrors[`attributes.${key}`]) {
+            setFieldErrors(prev => {
+                const next = { ...prev };
+                delete next[`attributes.${key}`];
+                return next;
+            });
+        }
     };
 
     const handleSaveVariant = async (e) => {
@@ -131,7 +186,15 @@ const Variants = () => {
             formData.append('price', variantForm.price);
             formData.append('stock_quantity', variantForm.stock_quantity);
             formData.append('is_default', variantForm.is_default);
-            formData.append('attributes', JSON.stringify(variantForm.attributes));
+
+            // Filter attributes here too so we don't send empty ones to DB
+            const finalAttrs = Object.entries(variantForm.attributes)
+                .reduce((acc, [key, val]) => {
+                    const trimmed = typeof val === 'string' ? val.trim() : val;
+                    if (trimmed !== '') acc[key] = trimmed;
+                    return acc;
+                }, {});
+            formData.append('attributes', JSON.stringify(finalAttrs));
 
             imagePreviews.forEach(img => {
                 if (typeof img === 'string' && img.startsWith('http')) {
@@ -141,6 +204,48 @@ const Variants = () => {
             selectedImages.forEach(file => {
                 formData.append('images', file);
             });
+
+            // 🛡️ Industrial Frontend Validation
+            const filteredAttributes = Object.entries(variantForm.attributes)
+                .reduce((acc, [key, val]) => {
+                    const trimmed = typeof val === 'string' ? val.trim() : val;
+                    if (trimmed !== '') acc[key] = trimmed;
+                    return acc;
+                }, {});
+
+            const validationData = {
+                ...variantForm,
+                attributes: filteredAttributes,
+                price: Number(variantForm.price),
+                stock: Number(variantForm.stock_quantity),
+                images: imagePreviews
+            };
+            const result = productSchemas.variant.safeParse(validationData);
+
+            if (!result.success) {
+                console.group("🛡️ Variant Validation Failed");
+                const flattened = result.error.flatten().fieldErrors;
+                console.error("Errors:", flattened);
+                console.log("Data causing error:", validationData);
+                console.groupEnd();
+
+                // Show specific fields in toast for better UX
+                const errorFields = Object.keys(flattened).map(k => k.replace('attributes.', '')).join(', ');
+                toast.error(`Please correct errors in: ${errorFields}`);
+
+                const errors = {};
+                result.error.issues.forEach(issue => {
+                    const path = issue.path.join('.');
+                    // Map back stock to stock_quantity for UI
+                    const uiPath = path === 'stock' ? 'stock_quantity' : path;
+                    errors[uiPath] = issue.message;
+                });
+                setFieldErrors(errors);
+                toast.error("Please correct the validation errors.");
+                return;
+            }
+
+            setLoading(true);
 
             if (editingVariant) {
                 await merchantApi.updateVariant(editingVariant._id, formData);
@@ -156,6 +261,31 @@ const Variants = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleImageChange = (e) => {
+        const files = Array.from(e.target.files);
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/avif'];
+
+        const validFiles = [];
+        for (const file of files) {
+            if (!ALLOWED_TYPES.includes(file.type)) {
+                toast.error(`${file.name} is not a supported format`);
+                continue;
+            }
+            if (file.size > MAX_FILE_SIZE) {
+                toast.error(`${file.name} is too large (max 5MB)`);
+                continue;
+            }
+            validFiles.push(file);
+        }
+
+        if (validFiles.length === 0) return;
+
+        setSelectedImages(prev => [...prev, ...validFiles]);
+        const previews = validFiles.map(file => URL.createObjectURL(file));
+        setImagePreviews(prev => [...prev, ...previews]);
     };
 
     const handleDeleteVariant = async (variantId) => {
@@ -179,29 +309,82 @@ const Variants = () => {
     return (
         <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+                <div className="flex items-center gap-6">
                     <button
                         onClick={() => navigate('/merchant/products')}
-                        className="p-3 bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-primary transition-all shadow-sm"
+                        className="w-14 h-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary/20 hover:shadow-xl transition-all group"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
                     </button>
                     <div>
-                        <h1 className="text-3xl font-bold text-primary tracking-tight">Product Variants</h1>
-                        <p className="text-gray-500 font-medium">Product: <span className="text-primary font-black uppercase">{product?.title}</span></p>
+                        <h1 className="text-3xl font-bold text-primary tracking-tight">Variant Management</h1>
+                        <p className="text-gray-500 font-medium text-sm mt-1">
+                            Product: <span className="text-primary font-black uppercase">{product?.title}</span>
+                        </p>
                     </div>
                 </div>
-                {!showForm && (
-                    <button
-                        onClick={() => handleOpenForm()}
-                        className="flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-2xl shadow-xl shadow-primary/20 font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all active:scale-95"
-                    >
-                        <Plus size={18} />
-                        Add Variant
-                    </button>
-                )}
+
+                <div className="flex items-center gap-4">
+                    {product && ['APPROVED', 'PENDING'].includes(product.status) && (
+                        <>
+                            <div className="bg-primary/5 border border-primary/10 rounded-2xl px-6 py-4 flex items-center gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
+                                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary italic font-black">
+                                    {product.status.charAt(0)}
+                                </div>
+                                <div>
+                                    <h3 className="font-black text-slate-900 tracking-tight text-xs">Status: Approved</h3>
+                                    <p className="text-slate-500 font-medium text-[9px] leading-relaxed">This product is approved. To change title or categories, send a request.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={() => handleRequestChange('PRODUCT')}
+                                    className="bg-primary hover:bg-black text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
+                                >
+                                    <GitPullRequest size={14} />
+                                    Request Change
+                                </Button>
+                            </div>
+                        </>
+                    )}
+
+                    {!showForm && (
+                        <button
+                            onClick={() => handleOpenForm()}
+                            className="flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-2xl shadow-xl shadow-primary/20 font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all active:scale-95 h-fit"
+                        >
+                            <Plus size={18} />
+                            Create New Variant
+                        </button>
+                    )}
+                </div>
             </div>
+
+            {product && ['APPROVED', 'PENDING'].includes(product.status) && (
+                <div className="bg-primary rounded-[2rem] p-8 text-white flex flex-col md:flex-row items-center gap-8 shadow-2xl shadow-primary/20 relative overflow-hidden animate-in zoom-in duration-500">
+                    <div className="relative z-10 w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-accent italic font-black text-2xl">
+                        !
+                    </div>
+                    <div className="relative z-10 flex-1 space-y-1">
+                        <h4 className="text-lg font-black tracking-tight italic">Product Catalog Locked</h4>
+                        <p className="text-white/60 text-sm font-medium leading-relaxed">
+                            This product is currently {product.status === 'APPROVED' ? 'active in the store' : 'pending verification'}.
+                            Sensitive fields (SKU, Attributes) require administrative approval for modifications.
+                        </p>
+                    </div>
+                    <div className="relative z-10 flex flex-col sm:flex-row gap-4">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/merchant/requests', { state: { type: 'CHANGE', productId: id } })}
+                            className="px-8 py-3 bg-white/10 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white/20 transition-all font-inter border border-white/10"
+                        >
+                            View Submission History
+                        </button>
+                    </div>
+                    <Lock size={200} className="absolute -right-10 -bottom-10 text-white/5 rotate-12" />
+                </div>
+            )}
 
             {showForm ? (
                 <div className="card-premium p-10 space-y-8 animate-in zoom-in-95 duration-300">
@@ -224,17 +407,38 @@ const Variants = () => {
 
                         {showAdvanced && (
                             <div className="relative md:col-span-2 bg-gray-50/50 p-8 rounded-3xl border border-gray-100 animate-in fade-in slide-in-from-top-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block">SKU (Inventory Identifier)</label>
-                                <input
-                                    placeholder="Leave blank to auto-generate"
-                                    className={`w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all ${editingVariant && ['APPROVED', 'PENDING'].includes(product?.status) ? 'opacity-50 cursor-not-allowed pr-14' : ''}`}
-                                    value={variantForm.sku}
-                                    onChange={(e) => setVariantForm({ ...variantForm, sku: e.target.value.toUpperCase() })}
-                                    disabled={editingVariant && ['APPROVED', 'PENDING'].includes(product?.status)}
-                                />
-                                {editingVariant && ['APPROVED', 'PENDING'].includes(product?.status) && (
-                                    <Lock size={18} className="absolute right-12 top-[62px] text-accent" />
-                                )}
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">SKU (Stock Keeping Unit)</label>
+                                    {editingVariant && ['APPROVED', 'PENDING'].includes(product?.status) && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedVariant(editingVariant);
+                                                setShowChangeModal(true);
+                                            }}
+                                            className="text-[10px] font-black text-accent uppercase tracking-widest hover:underline flex items-center gap-1.5"
+                                        >
+                                            <GitPullRequest size={12} /> Propose SKU Update
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        placeholder="Leave blank to auto-generate"
+                                        className={`w-full px-6 py-4 bg-white border ${fieldErrors.sku ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-sm font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all ${editingVariant && ['APPROVED', 'PENDING'].includes(product?.status) ? 'opacity-50 cursor-not-allowed pr-14' : ''}`}
+                                        value={variantForm.sku}
+                                        onChange={(e) => {
+                                            setVariantForm({ ...variantForm, sku: e.target.value.toUpperCase() });
+                                            if (fieldErrors.sku) setFieldErrors(prev => { const n = { ...prev }; delete n.sku; return n; });
+                                        }}
+                                        onBlur={(e) => handleBlur('sku', e.target.value)}
+                                        disabled={editingVariant && ['APPROVED', 'PENDING'].includes(product?.status)}
+                                    />
+                                    {fieldErrors.sku && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold italic underline decoration-red-200">! {fieldErrors.sku}</p>}
+                                    {editingVariant && ['APPROVED', 'PENDING'].includes(product?.status) && (
+                                        <Lock size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-accent/50" />
+                                    )}
+                                </div>
                             </div>
                         )}
 
@@ -243,11 +447,16 @@ const Variants = () => {
                             <input
                                 type="number"
                                 placeholder="0.00"
-                                className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors.price ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
                                 value={variantForm.price}
-                                onChange={(e) => setVariantForm({ ...variantForm, price: e.target.value })}
+                                onChange={(e) => {
+                                    setVariantForm({ ...variantForm, price: e.target.value });
+                                    if (fieldErrors.price) setFieldErrors(prev => { const n = { ...prev }; delete n.price; return n; });
+                                }}
+                                onBlur={(e) => handleBlur('price', e.target.value)}
                                 required
                             />
+                            {fieldErrors.price && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold italic underline decoration-red-200">! {fieldErrors.price}</p>}
                         </div>
 
                         <div className="space-y-2">
@@ -255,11 +464,16 @@ const Variants = () => {
                             <input
                                 type="number"
                                 placeholder="0"
-                                className="w-full px-6 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors.stock_quantity ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
                                 value={variantForm.stock_quantity}
-                                onChange={(e) => setVariantForm({ ...variantForm, stock_quantity: e.target.value })}
+                                onChange={(e) => {
+                                    setVariantForm({ ...variantForm, stock_quantity: e.target.value });
+                                    if (fieldErrors.stock_quantity) setFieldErrors(prev => { const n = { ...prev }; delete n.stock_quantity; return n; });
+                                }}
+                                onBlur={(e) => handleBlur('stock_quantity', e.target.value)}
                                 required
                             />
+                            {fieldErrors.stock_quantity && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold italic underline decoration-red-200">! {fieldErrors.stock_quantity}</p>}
                         </div>
 
                         {/* Attribute Logic */}
@@ -274,12 +488,15 @@ const Variants = () => {
                                     <Plus size={14} /> Add custom attribute
                                 </button>
                             </div>
+                            {fieldErrors.attributes && (
+                                <p className="text-[10px] text-red-500 font-bold italic mb-2">! {fieldErrors.attributes}</p>
+                            )}
                             <div className="grid grid-cols-2 gap-6 bg-gray-50/50 p-8 rounded-[2rem] border border-gray-100">
                                 {Object.entries(variantForm.attributes).map(([key, value]) => (
                                     <div key={key} className="space-y-2 relative group/attr">
                                         <label className="text-[10px] font-black text-gray-500 uppercase flex items-center justify-between tracking-widest">
                                             {key}
-                                            {!['size', 'color'].includes(key.toLowerCase()) && (
+                                            {!['size', 'color'].includes(key.toLowerCase()) ? (
                                                 <button
                                                     type="button"
                                                     onClick={() => removeAttribute(key)}
@@ -287,14 +504,34 @@ const Variants = () => {
                                                 >
                                                     <Trash2 size={12} />
                                                 </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeAttribute(key)}
+                                                    className="text-gray-300 hover:text-rose-400 transition-colors"
+                                                    title={`Remove ${key}`}
+                                                >
+                                                    <Trash2 size={10} />
+                                                </button>
                                             )}
                                         </label>
                                         <input
-                                            placeholder={`e.g., ${key === 'size' ? 'Large' : 'Gold'}`}
+                                            placeholder={`e.g., ${key.toLowerCase() === 'size' ? 'Large' :
+                                                key.toLowerCase() === 'color' ? 'Gold' :
+                                                    key.toLowerCase() === 'material' ? 'Cotton' :
+                                                        key.toLowerCase() === 'style' ? 'Vintage' :
+                                                            'Premium'
+                                                }`}
                                             value={value}
                                             onChange={(e) => handleAttributeChange(key, e.target.value)}
-                                            className="w-full px-6 py-3 bg-white border border-gray-100 rounded-xl text-sm font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                            onBlur={() => handleBlur(`attributes.${key}`, value)}
+                                            className={`w-full px-6 py-3 bg-white border ${fieldErrors[`attributes.${key}`] ? 'border-red-500' : 'border-gray-100'} rounded-xl text-sm font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
                                         />
+                                        {fieldErrors[`attributes.${key}`] && (
+                                            <p className="text-[9px] text-red-500 font-bold italic mt-1 ml-1 animate-in slide-in-from-left-2">
+                                                ! {fieldErrors[`attributes.${key}`]}
+                                            </p>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -352,12 +589,7 @@ const Variants = () => {
                                         multiple
                                         accept="image/*"
                                         className="hidden"
-                                        onChange={(e) => {
-                                            const files = Array.from(e.target.files);
-                                            setSelectedImages([...selectedImages, ...files]);
-                                            const previews = files.map(file => URL.createObjectURL(file));
-                                            setImagePreviews([...imagePreviews, ...previews]);
-                                        }}
+                                        onChange={handleImageChange}
                                     />
                                 </label>
                             </div>
@@ -410,6 +642,18 @@ const Variants = () => {
                                                 >
                                                     <Copy size={12} />
                                                 </button>
+                                                {product && ['APPROVED', 'PENDING'].includes(product.status) && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleRequestChange('VARIANT', v);
+                                                        }}
+                                                        className="p-3 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-xl transition-all shadow-sm border border-primary/10 group/btn"
+                                                        title="Request Change"
+                                                    >
+                                                        <GitPullRequest size={16} className="group-hover/btn:scale-110 transition-transform" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -429,33 +673,52 @@ const Variants = () => {
                                         </div>
                                         <p className="text-xl font-black text-primary italic">₹{v.price.toLocaleString()}</p>
                                     </div>
-                                    <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 group/item">
+                                    <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 group/item relative overflow-hidden">
                                         <div className="flex items-center gap-2 mb-1">
                                             <Hash size={14} className="text-accent" />
                                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">In Stock</span>
                                         </div>
                                         <p className="text-xl font-black text-primary italic">{v.stock_quantity || 0}</p>
+                                        <div className="absolute right-0 top-0 bottom-0 w-1 bg-accent/20 translate-x-1 group-hover/item:translate-x-0 transition-transform" />
                                     </div>
                                 </div>
+
+                                {
+                                    ['APPROVED', 'PENDING'].includes(product?.status) && (
+                                        <button
+                                            onClick={() => {
+                                                setSelectedVariant(v);
+                                                setShowChangeModal(true);
+                                            }}
+                                            className="w-full py-3 bg-slate-50 border border-slate-100 rounded-xl text-[9px] font-black text-slate-400 uppercase tracking-widest hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <GitPullRequest size={12} />
+                                            Request Variant Modification
+                                        </button>
+                                    )
+                                }
                             </div>
                         ))
                     )}
                 </div>
-            )}
+            )
+            }
             {/* Change Request Modal */}
-            {selectedVariant && (
-                <ChangeRequestModal
-                    isOpen={showChangeModal}
-                    onClose={() => {
-                        setShowChangeModal(false);
-                        setSelectedVariant(null);
-                    }}
-                    entityType="VARIANT"
-                    entityId={selectedVariant._id}
-                    currentData={selectedVariant}
-                />
-            )}
-        </div>
+            {
+                selectedVariant && (
+                    <ChangeRequestModal
+                        isOpen={showChangeModal}
+                        onClose={() => {
+                            setShowChangeModal(false);
+                            setSelectedVariant(null);
+                        }}
+                        entityType="VARIANT"
+                        entityId={selectedVariant._id}
+                        currentData={selectedVariant}
+                    />
+                )
+            }
+        </div >
     );
 };
 

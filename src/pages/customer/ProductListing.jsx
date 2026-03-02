@@ -19,15 +19,25 @@ const ProductListing = () => {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [meta, setMeta] = useState({ page: 1, limit: 12, total: 0 });
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const [viewMode, setViewMode] = useState('grid');
+    const [priceRange, setPriceRange] = useState({ min: 0, max: 100000 });
+    const [debouncedPrice, setDebouncedPrice] = useState(priceRange);
 
     const currentCategory = searchParams.get('category') || '';
     const currentPage = parseInt(searchParams.get('page')) || 1;
 
+    // Debounce price changes
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedPrice(priceRange);
+        }, 800);
+        return () => clearTimeout(timer);
+    }, [priceRange]);
+
     useEffect(() => {
         fetchProducts();
         fetchCategories();
-    }, [currentCategory, currentPage]);
+    }, [currentCategory, currentPage, debouncedPrice]);
 
     const fetchProducts = async () => {
         try {
@@ -35,7 +45,9 @@ const ProductListing = () => {
             const response = await customerApi.getProducts({
                 page: currentPage,
                 limit: meta.limit,
-                category: currentCategory
+                category: currentCategory,
+                minPrice: debouncedPrice.min,
+                maxPrice: debouncedPrice.max
             });
             setProducts(response.data || []);
             setMeta(prev => ({ ...prev, total: response.meta?.total || 0 }));
@@ -134,22 +146,73 @@ const ProductListing = () => {
                             </div>
                         </div>
 
-                        <div className="h-px bg-gray-100"></div>
-
                         {/* Price Range */}
                         <div className="space-y-6">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Price Range</h4>
-                            <div className="px-1">
-                                <div className="h-1 bg-gray-50 rounded-full relative">
-                                    <div className="absolute inset-x-0 h-full bg-primary/20 rounded-full"></div>
-                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-primary rounded-full shadow-md"></div>
-                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-primary rounded-full shadow-md"></div>
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Price Dynamics</h4>
+                            <div className="space-y-6">
+                                <div className="relative h-6 flex items-center">
+                                    {/* Track Background */}
+                                    <div className="absolute w-full h-1 bg-gray-100 rounded-full"></div>
+
+                                    {/* Active Track Highlight */}
+                                    <div
+                                        className="absolute h-1 bg-primary rounded-full transition-all duration-300"
+                                        style={{
+                                            left: `${(priceRange.min / 200000) * 100}%`,
+                                            right: `${100 - (priceRange.max / 200000) * 100}%`
+                                        }}
+                                    ></div>
+
+                                    {/* Inputs */}
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="200000"
+                                        step="500"
+                                        value={priceRange.min}
+                                        onChange={(e) => {
+                                            const val = Math.min(Number(e.target.value), priceRange.max - 5000);
+                                            setPriceRange(prev => ({ ...prev, min: val }));
+                                        }}
+                                        className="absolute w-full h-1 bg-transparent appearance-none cursor-pointer pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-primary [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
+                                    />
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="200000"
+                                        step="500"
+                                        value={priceRange.max}
+                                        onChange={(e) => {
+                                            const val = Math.max(Number(e.target.value), priceRange.min + 5000);
+                                            setPriceRange(prev => ({ ...prev, max: val }));
+                                        }}
+                                        className="absolute w-full h-1 bg-transparent appearance-none cursor-pointer pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-primary [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
+                                    />
                                 </div>
-                                <div className="flex items-center justify-between mt-4 text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                                    <span>₹ 0</span>
-                                    <span>₹ 1,00,000+</span>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Minimum</p>
+                                        <div className="px-3 py-2 bg-white border border-gray-100 rounded-xl text-xs font-bold text-primary">
+                                            ₹ {priceRange.min.toLocaleString()}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2 text-right">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Maximum</p>
+                                        <div className="px-3 py-2 bg-white border border-gray-100 rounded-xl text-xs font-bold text-primary">
+                                            ₹ {priceRange.max.toLocaleString()}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/5 relative overflow-hidden group">
+                            <ArrowUpRight className="absolute -top-2 -right-2 text-primary opacity-5 group-hover:opacity-10 transition-opacity" size={60} />
+                            <p className="text-[9px] font-black text-primary uppercase tracking-widest mb-2">Curated Service</p>
+                            <p className="text-xs font-medium text-primary/60 leading-relaxed italic">
+                                Use price filters to identify specialized collections within your desired budget.
+                            </p>
                         </div>
                     </aside>
 
