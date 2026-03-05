@@ -44,6 +44,7 @@ import AdminCoupons from './pages/admin/Coupons';
 import AdminSettings from './pages/admin/Settings';
 import AdminAuditLogs from './pages/admin/AuditLogs';
 import AdminTransactions from './pages/admin/Transactions';
+import AdminReviews from './pages/admin/Reviews';
 
 // Customer Pages
 import CustomerLayout from './layouts/CustomerLayout';
@@ -182,6 +183,7 @@ function App() {
                                         <Route path="settings" element={<AdminSettings />} />
                                         <Route path="audit-logs" element={<AdminAuditLogs />} />
                                         <Route path="transactions" element={<AdminTransactions />} />
+                                        <Route path="reviews" element={<AdminReviews />} />
                                         <Route path="*" element={<Navigate to="dashboard" replace />} />
                                     </Routes>
                                 </AdminLayout>

@@ -23,16 +23,17 @@ export const productSchemas = {
             .array(z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid category ID format"))
             .min(1, "At least one category is required"),
 
-        pricing: z.object({
-            min_price: z.coerce.number().positive("Price must be greater than zero"),
-            max_price: z.coerce.number().optional(),
-            currency: z.string().default("INR"),
-        }).refine(data => !data.max_price || Number(data.max_price) >= Number(data.min_price), {
-            message: "Max price cannot be less than min price",
-            path: ["max_price"]
-        }),
+        // 💎 Unified Variant Matrix (Phase 13)
+        // Every product must have at least one variant.
+        variants: z.array(z.object({
+            price: z.coerce.number().positive("Variant price must be greater than zero"),
+            stock: z.coerce.number().int().nonnegative("Variant stock cannot be negative").default(0),
+            sku: z.string().trim().max(30).optional().or(z.literal("")),
+            attributes: z.record(z.string(), z.string().trim().min(1, "Value is required").or(z.number())).optional(),
+            image: z.any().optional(), // Specific variant thumbnail
+        })).min(1, "At least one product variant is required"),
 
-        // We validate image count on frontend separately, but include here for parity
+        // We validate image count on frontend separately
         images: z.array(z.any()).min(1, "At least one product image is required"),
     }),
 

@@ -257,9 +257,12 @@ const ProductListing = () => {
                                                     <p className="text-xs text-gray-500 font-medium leading-relaxed line-clamp-2 mt-2 mb-4">{product.description}</p>
                                                 )}
                                                 <div className="flex items-baseline gap-2 pt-1">
-                                                    <span className="text-lg font-black text-gray-900">₹{product.pricing?.min_price}</span>
-                                                    {product.pricing?.max_price > product.pricing?.min_price && (
-                                                        <span className="text-[10px] font-bold text-gray-300 line-through">₹{product.pricing.max_price}</span>
+                                                    {product.pricing?.min_price === product.pricing?.max_price ? (
+                                                        <span className="text-lg font-black text-gray-900">₹{product.pricing?.min_price?.toLocaleString()}</span>
+                                                    ) : (
+                                                        <span className="text-lg font-black text-gray-900">
+                                                            ₹{product.pricing?.min_price?.toLocaleString()} - ₹{product.pricing?.max_price?.toLocaleString()}
+                                                        </span>
                                                     )}
                                                 </div>
                                             </div>

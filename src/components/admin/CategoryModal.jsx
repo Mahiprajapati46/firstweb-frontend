@@ -15,6 +15,7 @@ const CategoryModal = ({ isOpen, onClose, category, categories, onRefresh }) => 
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (category) {
@@ -37,12 +38,18 @@ const CategoryModal = ({ isOpen, onClose, category, categories, onRefresh }) => 
             setImagePreview(null);
         }
         setImageFile(null);
+        setErrors({});
     }, [category, isOpen]);
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        // Validate
+        const nameClean = formData.name.trim();
+        if (!nameClean) { setErrors({ name: 'Category name is required' }); return; }
+        if (nameClean.length < 2) { setErrors({ name: 'Name must be at least 2 characters' }); return; }
+        setErrors({});
         setLoading(true);
         try {
             let savedCategory;
@@ -110,11 +117,11 @@ const CategoryModal = ({ isOpen, onClose, category, categories, onRefresh }) => 
                                 <input
                                     type="text"
                                     value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    required
+                                    onChange={(e) => { setFormData({ ...formData, name: e.target.value }); if (errors.name) setErrors({}); }}
                                     placeholder="e.g. Electronics, Home & Garden"
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-semibold text-slate-900 focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all outline-none"
+                                    className={`w-full bg-slate-50 border rounded-2xl p-4 text-sm font-semibold text-slate-900 focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all outline-none ${errors.name ? 'border-rose-400 bg-rose-50' : 'border-slate-100'}`}
                                 />
+                                {errors.name && <p className="text-[11px] text-rose-500 font-semibold ml-1 mt-1">{errors.name}</p>}
                             </div>
 
                             {/* Parent Category */}

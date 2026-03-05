@@ -72,23 +72,45 @@ const Variants = () => {
     };
 
     const handleOpenForm = (variant = null) => {
+        // 💎 Phase 14: Ensure Schema Parity by gathering all keys from existing variants
+        const allExistingKeys = new Set();
+        variants.forEach(v => {
+            Object.keys(v.attributes || {}).forEach(k => allExistingKeys.add(k));
+        });
+
         if (variant) {
             setEditingVariant(variant);
+            const mergedAttrs = { ...variant.attributes };
+            // Ensure even if this specific variant is missing a key found in others, it's present
+            allExistingKeys.forEach(k => {
+                if (mergedAttrs[k] === undefined) mergedAttrs[k] = '';
+            });
+
             setVariantForm({
                 sku: variant.sku,
                 price: variant.price.toString(),
                 stock_quantity: (variant.stock_quantity || 0).toString(),
-                attributes: variant.attributes || { size: '', color: '' },
+                attributes: mergedAttrs,
                 is_default: variant.is_default || false
             });
             setImagePreviews(variant.images || []);
         } else {
             setEditingVariant(null);
+            const defaultAttrs = {};
+            allExistingKeys.forEach(k => {
+                defaultAttrs[k] = '';
+            });
+            // Fallback if no variants exist yet (though unlikely in this view)
+            if (allExistingKeys.size === 0) {
+                defaultAttrs.size = '';
+                defaultAttrs.color = '';
+            }
+
             setVariantForm({
                 sku: '',
                 price: '',
                 stock_quantity: '',
-                attributes: { size: '', color: '' },
+                attributes: defaultAttrs,
                 is_default: false
             });
             setImagePreviews([]);
@@ -289,6 +311,11 @@ const Variants = () => {
     };
 
     const handleDeleteVariant = async (variantId) => {
+        if (variants.length <= 1) {
+            toast.error('❌ Deletion Blocked: A product must have at least one variant.');
+            return;
+        }
+
         if (!window.confirm('Delete this variant permanently?')) return;
         try {
             await merchantApi.deleteVariant(variantId);
@@ -554,7 +581,16 @@ const Variants = () => {
 
                         {/* Variant Gallery */}
                         <div className="md:col-span-2 space-y-4 pt-6">
-                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Variant Images</h3>
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Variant Images</h3>
+                                <div className="group relative">
+                                    <AlertCircle size={12} className="text-gray-300 cursor-help" />
+                                    <div className="absolute left-0 top-6 w-64 p-4 bg-black text-[9px] text-white font-medium rounded-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none shadow-2xl normal-case">
+                                        <p className="font-black text-accent uppercase mb-1 tracking-widest">Variation Rule:</p>
+                                        Only upload photos if this variant is **visually different** (e.g. Color). If left empty, the generic Product Images will be used.
+                                    </div>
+                                </div>
+                            </div>
                             <div className="flex flex-wrap gap-6">
                                 {imagePreviews.map((preview, idx) => (
                                     <div key={idx} className="relative w-28 h-28 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden group/img">

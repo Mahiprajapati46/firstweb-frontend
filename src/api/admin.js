@@ -362,6 +362,37 @@ const adminApi = {
         } catch (error) {
             throw error.response?.data || error;
         }
+    },
+    // Reviews Moderation
+    getReviews: async (params = {}) => {
+        try {
+            const queryParams = new URLSearchParams();
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    queryParams.append(key, value);
+                }
+            });
+            const response = await api.get(`/admin/reviews?${queryParams.toString()}`);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+    moderateReview: async (reviewId, { action, reason }) => {
+        try {
+            const response = await api.patch(`/admin/reviews/${reviewId}/decision`, { action, reason });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+    deleteReview: async (reviewId) => {
+        try {
+            const response = await api.delete(`/admin/reviews/${reviewId}`);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
     }
 };
 

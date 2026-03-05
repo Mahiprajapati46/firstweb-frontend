@@ -8,7 +8,11 @@ import {
     Filter,
     Search,
     ThumbsUp,
-    AlertCircle
+    AlertCircle,
+    Activity,
+    CheckCircle2,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 import merchantApi from '../../api/merchant';
 import Button from '../../components/ui/Button';
@@ -21,6 +25,11 @@ const Reviews = () => {
     const [replyText, setReplyText] = useState('');
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [stats, setStats] = useState({
+        averageRating: 0,
+        totalReviews: 0,
+        verifiedCount: 0
+    });
 
     useEffect(() => {
         fetchReviews(page);
@@ -35,6 +44,9 @@ const Reviews = () => {
             });
             setReviews(response.data || []);
             setTotalPages(response.pagination?.pages || 1);
+            if (response.stats) {
+                setStats(response.stats);
+            }
         } catch (error) {
             toast.error('Failed to load reviews');
         } finally {
@@ -46,7 +58,7 @@ const Reviews = () => {
         if (!replyText.trim()) return;
         try {
             await merchantApi.replyToReview(reviewId, replyText);
-            toast.success('Response synchronized');
+            toast.success('Reply sent successfully');
             setReplyingTo(null);
             setReplyText('');
             fetchReviews(page);
@@ -60,39 +72,39 @@ const Reviews = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-primary tracking-tight">Public Reputation Feed</h1>
-                    <p className="text-gray-500 mt-1">Engage with customers and manage your brand's digital presence.</p>
+                    <h1 className="text-2xl font-bold text-primary tracking-tight">Customer Reviews</h1>
+                    <p className="text-gray-500 mt-1">Reply to customers and manage your public feedback.</p>
                 </div>
             </div>
 
-            {/* Rating Summary Card */}
-            <div className="bg-primary rounded-[2.5rem] p-10 text-white flex flex-col md:flex-row items-center gap-12 shadow-2xl shadow-primary/20 relative overflow-hidden">
+            {/* Rating Summary Card - Professional Dark Theme */}
+            <div className="bg-slate-900 rounded-[3rem] p-12 text-white flex flex-col md:flex-row items-center gap-12 shadow-2xl shadow-slate-200 relative overflow-hidden border border-slate-800">
                 <div className="relative z-10 text-center md:text-left">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Aggregate Rating</p>
-                    <div className="flex items-center justify-center md:justify-start gap-5">
-                        <h2 className="text-7xl font-black tracking-tighter italic">4.8</h2>
-                        <div className="flex flex-col gap-1.5">
-                            <div className="flex gap-1 text-accent">
-                                {[1, 2, 3, 4, 5].map(s => <Star key={s} size={22} fill="currentColor" />)}
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Rating Summary</p>
+                    <div className="flex items-center justify-center md:justify-start gap-6">
+                        <h2 className="text-8xl font-black tracking-tighter italic text-white">{stats.averageRating.toFixed(1)}</h2>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex gap-1 text-emerald-400">
+                                {[1, 2, 3, 4, 5].map(s => <Star key={s} size={24} fill={s <= Math.round(stats.averageRating) ? "currentColor" : "none"} />)}
                             </div>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Verified by {reviews.length} clients</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">From {stats.totalReviews} Verified Reviews</p>
                         </div>
                     </div>
                 </div>
                 <div className="relative z-10 flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
                     {[
-                        { label: 'Quality Index', value: 'Prime' },
-                        { label: 'Speed Metric', value: 'High' },
-                        { label: 'Dialogue Stat', value: 'Active' },
-                        { label: 'Market Value', value: 'Premium' }
+                        { label: 'Review Quality', value: stats.averageRating >= 4 ? 'Elite' : stats.averageRating >= 2.5 ? 'Standard' : 'Needs Attention' },
+                        { label: 'Response Time', value: 'Fast' },
+                        { label: 'Verified Sales', value: `${stats.verifiedCount} Total` },
+                        { label: 'Merchant Status', value: 'Premium' }
                     ].map(stat => (
-                        <div key={stat.label} className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
-                            <p className="text-[8px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1.5">{stat.label}</p>
-                            <p className="text-sm font-black italic text-accent">{stat.value}</p>
+                        <div key={stat.label} className="bg-white/5 p-6 rounded-[1.5rem] border border-white/5 backdrop-blur-xl hover:bg-white/10 transition-all duration-300">
+                            <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">{stat.label}</p>
+                            <p className={`text-sm font-black italic ${stat.label === 'Quality Index' && stats.averageRating < 2.5 ? 'text-rose-400' : 'text-emerald-400'}`}>{stat.value}</p>
                         </div>
                     ))}
                 </div>
-                <Activity size={300} className="absolute -right-20 -bottom-20 text-white/5 rotate-12" />
+                <Activity size={320} className="absolute -right-20 -bottom-20 text-emerald-500/5 rotate-12" />
             </div>
 
             {/* Reviews list */}
@@ -106,7 +118,7 @@ const Reviews = () => {
                         <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-primary mx-auto mb-6">
                             <MessageSquare size={36} />
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">No feedback signatures identified</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">No reviews found</p>
                     </div>
                 ) : (
                     reviews.map((review) => (
@@ -117,7 +129,15 @@ const Reviews = () => {
                                         {review.user_id?.full_name?.charAt(0) || 'U'}
                                     </div>
                                     <div className="space-y-1">
-                                        <h3 className="text-lg font-black text-primary">{review.user_id?.full_name || 'Customer'}</h3>
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="text-lg font-black text-primary">{review.user_id?.full_name || 'Customer'}</h3>
+                                            {review.is_verified_purchase && (
+                                                <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                                                    <CheckCircle2 size={10} />
+                                                    <span className="text-[8px] font-black uppercase tracking-wider">Verified Purchase</span>
+                                                </div>
+                                            )}
+                                        </div>
                                         <div className="flex items-center gap-4">
                                             <div className="flex gap-0.5 text-accent">
                                                 {[...Array(5)].map((_, i) => (
@@ -128,15 +148,27 @@ const Reviews = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="md:text-right">
-                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Reference Asset</p>
-                                    <p className="text-sm font-black text-primary tracking-tight">{review.product?.title || 'Unknown Product'}</p>
+                                <div className="flex flex-col md:items-end gap-3">
+                                    <div className="md:text-right">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Reference Asset</p>
+                                        <p className="text-sm font-black text-primary tracking-tight">{review.product_id?.title || 'Unknown Product'}</p>
+                                    </div>
+                                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest ${review.is_visible ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
+                                        {review.is_visible ? <><Eye size={12} /> Public Visibility</> : <><EyeOff size={12} /> Hidden (Toxic)</>}
+                                    </div>
                                 </div>
                             </div>
 
-                            <p className="text-base text-gray-600 font-medium leading-relaxed italic border-l-2 border-gray-100 pl-6">
-                                "{review.comment}"
-                            </p>
+                            {review.comment ? (
+                                <p className="text-base text-gray-600 font-medium leading-relaxed italic border-l-2 border-gray-100 pl-6">
+                                    "{review.comment}"
+                                </p>
+                            ) : (
+                                <div className="flex items-center gap-2 text-gray-400 italic text-sm pl-6 border-l-2 border-gray-50">
+                                    <AlertCircle size={14} />
+                                    <span>Rating Only Submission</span>
+                                </div>
+                            )}
 
                             {review.merchant_reply ? (
                                 <div className="bg-gray-50 p-8 rounded-3xl border border-gray-100 space-y-3 ml-6 md:ml-12 relative">
@@ -152,7 +184,7 @@ const Reviews = () => {
                                 <div className="space-y-4 animate-in slide-in-from-top-4 duration-500 ml-6 md:ml-12">
                                     <textarea
                                         className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-primary/5 focus:border-primary min-h-[120px] shadow-sm transition-all"
-                                        placeholder="Formulate a professional response..."
+                                        placeholder="Write your reply here..."
                                         value={replyText}
                                         onChange={(e) => setReplyText(e.target.value)}
                                     />
@@ -170,7 +202,7 @@ const Reviews = () => {
                                             onClick={() => handleReply(review._id)}
                                             className="bg-primary text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:shadow-primary/20 transition-all"
                                         >
-                                            Transmit Message
+                                            Send Reply
                                         </button>
                                     </div>
                                 </div>
@@ -183,7 +215,7 @@ const Reviews = () => {
                                     className="flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-accent transition-all uppercase tracking-[0.2em] ml-6 md:ml-12 group/btn"
                                 >
                                     <MessageSquare size={16} className="group-hover/btn:scale-110 transition-transform" />
-                                    Initiate Dialogue
+                                    Reply
                                 </button>
                             )}
                         </div>

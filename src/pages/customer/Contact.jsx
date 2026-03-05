@@ -4,11 +4,55 @@ import toast from 'react-hot-toast';
 
 const Contact = () => {
     const [formData, setFormData] = React.useState({ name: '', email: '', message: '' });
+    const [errors, setErrors] = React.useState({});
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isSubmitted, setIsSubmitted] = React.useState(false);
 
+    const validate = (data) => {
+        const newErrors = {};
+        const nameClean = data.name.trim();
+        const emailClean = data.email.trim();
+        const messageClean = data.message.trim();
+
+        if (!nameClean) newErrors.name = 'Full name is required';
+        else if (nameClean.length < 2) newErrors.name = 'Name must be at least 2 characters';
+        else if (!/^[a-zA-Z\s]+$/.test(nameClean)) newErrors.name = 'Name must contain only letters';
+
+        if (!emailClean) newErrors.email = 'Work email is required';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClean)) newErrors.email = 'Enter a valid email address';
+
+        if (!messageClean) newErrors.message = 'Message is required';
+        else if (messageClean.length < 15) newErrors.message = 'Message must be at least 15 characters';
+
+        return newErrors;
+    };
+
+    const handleBlur = (field) => {
+        const fieldErrors = validate(formData);
+        if (fieldErrors[field]) {
+            setErrors(prev => ({ ...prev, [field]: fieldErrors[field] }));
+        } else {
+            setErrors(prev => { const e = { ...prev }; delete e[field]; return e; });
+        }
+    };
+
+    const handleChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        // Clear error as user types valid data
+        if (errors[field]) {
+            const updated = { ...formData, [field]: value };
+            const fieldErrors = validate(updated);
+            if (!fieldErrors[field]) setErrors(prev => { const e = { ...prev }; delete e[field]; return e; });
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const validationErrors = validate(formData);
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            return;
+        }
         setIsSubmitting(true);
         // Simulate corporate transmission
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -54,40 +98,43 @@ const Contact = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-10 md:p-12 space-y-8">
                         <h2 className="text-xl font-bold text-gray-900">Send an Inquiry</h2>
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form onSubmit={handleSubmit} noValidate className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
                                     <input
-                                        required
                                         type="text"
                                         value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary/5 focus:border-primary outline-none transition-all font-medium text-sm"
+                                        onChange={e => handleChange('name', e.target.value)}
+                                        onBlur={() => handleBlur('name')}
+                                        className={`w-full px-6 py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-primary/5 focus:border-primary outline-none transition-all font-medium text-sm ${errors.name ? 'border-rose-400 bg-rose-50' : 'border-gray-100'}`}
                                         placeholder="e.g. Rahul Gupta"
                                     />
+                                    {errors.name && <p className="text-[11px] text-rose-500 font-semibold ml-1 mt-1">{errors.name}</p>}
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Work Email</label>
                                     <input
-                                        required
                                         type="email"
                                         value={formData.email}
-                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary/5 focus:border-primary outline-none transition-all font-medium text-sm"
+                                        onChange={e => handleChange('email', e.target.value)}
+                                        onBlur={() => handleBlur('email')}
+                                        className={`w-full px-6 py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-primary/5 focus:border-primary outline-none transition-all font-medium text-sm ${errors.email ? 'border-rose-400 bg-rose-50' : 'border-gray-100'}`}
                                         placeholder="rahul@example.com"
                                     />
+                                    {errors.email && <p className="text-[11px] text-rose-500 font-semibold ml-1 mt-1">{errors.email}</p>}
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Message</label>
                                 <textarea
-                                    required
                                     value={formData.message}
-                                    onChange={e => setFormData({ ...formData, message: e.target.value })}
-                                    className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary/5 focus:border-primary outline-none transition-all font-medium text-sm h-32 resize-none"
+                                    onChange={e => handleChange('message', e.target.value)}
+                                    onBlur={() => handleBlur('message')}
+                                    className={`w-full px-6 py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-primary/5 focus:border-primary outline-none transition-all font-medium text-sm h-32 resize-none ${errors.message ? 'border-rose-400 bg-rose-50' : 'border-gray-100'}`}
                                     placeholder="How can we assist your operations today?"
                                 ></textarea>
+                                {errors.message && <p className="text-[11px] text-rose-500 font-semibold ml-1 mt-1">{errors.message}</p>}
                             </div>
                             <button
                                 disabled={isSubmitting}

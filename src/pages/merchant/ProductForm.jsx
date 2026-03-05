@@ -37,11 +37,11 @@ const ProductForm = () => {
         title: '',
         description: '',
         category_ids: [],
-        pricing: {
-            min_price: '',
-            max_price: '',
-            currency: 'INR'
-        }
+        variants: [
+            { price: '', stock: '', sku: '', attributes: { Size: 'Standard' }, image: null }
+        ],
+        attribute_config: ['Size'],
+        showAdvanced: false
     });
     const [images, setImages] = useState([]);
     const [previewImages, setPreviewImages] = useState([]);
@@ -60,15 +60,36 @@ const ProductForm = () => {
                 const productResponse = await merchantApi.getProduct(id);
                 const product = productResponse.data;
                 setProductStatus(product.status);
+
+                // Map existing variants if available, otherwise fallback to product pricing info
+                const existingVariants = product.variants?.length > 0
+                    ? product.variants.map(v => ({
+                        _id: v._id,
+                        price: v.price || '',
+                        stock: v.stock || 0,
+                        sku: v.sku || '',
+                        attributes: v.attributes || { size: 'Standard' },
+                        image: v.images?.[0] || null
+                    }))
+                    : [{
+                        price: product.pricing?.min_price || '',
+                        stock: 0,
+                        sku: '',
+                        attributes: { size: 'Standard' },
+                        image: null
+                    }];
+
+                // Extra: Identify unique attribute keys from variants
+                const attrKeys = Array.from(new Set(
+                    existingVariants.flatMap(v => Object.keys(v.attributes))
+                ));
+
                 setFormData({
                     title: product.title,
                     description: product.description,
                     category_ids: product.category_ids?.map(c => typeof c === 'object' ? c._id : c) || [],
-                    pricing: {
-                        min_price: product.pricing?.min_price || '',
-                        max_price: product.pricing?.max_price || '',
-                        currency: product.pricing?.currency || 'INR'
-                    }
+                    variants: existingVariants,
+                    attribute_config: attrKeys.length > 0 ? attrKeys : ['Size']
                 });
                 setPreviewImages(product.images || []);
             }
@@ -81,17 +102,27 @@ const ProductForm = () => {
     };
 
     const handleBlur = (name, value) => {
-        // Prepare data for validation (mirroring formData structure)
         const currentData = { ...formData };
+
+        // Handle nested paths like variants.0.price
         if (name.includes('.')) {
-            const [parent, child] = name.split('.');
-            currentData[parent] = { ...currentData[parent], [child]: value };
+            const parts = name.split('.');
+            if (parts[0] === 'variants') {
+                const index = parseInt(parts[1]);
+                const field = parts[2];
+                currentData.variants[index] = { ...currentData.variants[index], [field]: value };
+            } else {
+                const [parent, child] = parts;
+                currentData[parent] = { ...currentData[parent], [child]: value };
+            }
         } else {
             currentData[name] = value;
         }
 
-        // Manual addition of image count check for UX
-        const dataToValidate = { ...currentData, images: previewImages };
+        const dataToValidate = {
+            ...currentData,
+            images: previewImages.map(img => typeof img === 'string' ? img : img.url)
+        };
 
         const result = productSchemas.create.safeParse(dataToValidate);
 
@@ -102,27 +133,141 @@ const ProductForm = () => {
             });
 
             if (fieldIssue) {
-                setFieldErrors(prev => ({
-                    ...prev,
-                    [name]: fieldIssue.message
-                }));
+                setFieldErrors(prev => ({ ...prev, [name]: fieldIssue.message }));
+            } else {
+                setFieldErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[name];
+                    return newErrors;
+                });
             }
+        } else {
+            setFieldErrors({});
         }
+    };
+
+    const handleVariantChange = (index, field, value) => {
+        const newVariants = [...formData.variants];
+        if (field.startsWith('attributes.')) {
+            const attrKey = field.split('.')[1];
+            newVariants[index].attributes = { ...newVariants[index].attributes, [attrKey]: value };
+        } else {
+            newVariants[index][field] = value;
+        }
+        setFormData({ ...formData, variants: newVariants });
+    };
+
+    const addVariant = () => {
+        const defaultAttrs = {};
+        formData.attribute_config.forEach(key => {
+            defaultAttrs[key] = '';
+        });
+
+        setFormData({
+            ...formData,
+            variants: [
+                ...formData.variants,
+                { price: '', stock: '', sku: '', attributes: defaultAttrs, image: null }
+            ],
+            hasMultipleVariants: true
+        });
+    };
+
+    const addAttributeKey = () => {
+        const key = window.prompt("Enter option name (e.g. Color, Material):");
+        if (!key || formData.attribute_config.includes(key)) return;
+
+        const newVariants = formData.variants.map(v => ({
+            ...v,
+            attributes: { ...v.attributes, [key]: '' }
+        }));
+
+        setFormData({
+            ...formData,
+            attribute_config: [...formData.attribute_config, key],
+            variants: newVariants
+        });
+    };
+
+    const removeAttributeKey = (key) => {
+        if (formData.attribute_config.length <= 1) {
+            toast.error("At least one option is required");
+            return;
+        }
+
+        const newVariants = formData.variants.map(v => {
+            const newAttrs = { ...v.attributes };
+            delete newAttrs[key];
+            return { ...v, attributes: newAttrs };
+        });
+
+        setFormData({
+            ...formData,
+            attribute_config: formData.attribute_config.filter(k => k !== key),
+            variants: newVariants
+        });
+    };
+
+    const removeVariant = (index) => {
+        if (formData.variants.length <= 1) {
+            toast.error("At least one variant is required");
+            return;
+        }
+        const newVariants = formData.variants.filter((_, i) => i !== index);
+        setFormData({
+            ...formData,
+            variants: newVariants
+        });
+    };
+
+    const handleVariantImageChange = (index, e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
+        const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            toast.error('Unsupported image format');
+            return;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+            toast.error('Image too large (max 5MB)');
+            return;
+        }
+
+        file.previewUrl = URL.createObjectURL(file);
+        const newVariants = [...formData.variants];
+        newVariants[index].image = {
+            url: file.previewUrl,
+            isLocal: true,
+            originalFile: file
+        };
+        setFormData({ ...formData, variants: newVariants });
+    };
+
+    const removeVariantImage = (index) => {
+        const newVariants = [...formData.variants];
+        if (newVariants[index].image?.isLocal) {
+            URL.revokeObjectURL(newVariants[index].image.url);
+        }
+        newVariants[index].image = null;
+        setFormData({ ...formData, variants: newVariants });
     };
 
     const handleImageChange = (e) => {
         const files = Array.from(e.target.files);
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
         const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
 
         const validFiles = [];
         for (const file of files) {
             if (!ALLOWED_TYPES.includes(file.type)) {
-                toast.error(`${file.name} is not a supported image format`);
+                toast.error(`${file.name} is not supported`);
                 continue;
             }
             if (file.size > MAX_FILE_SIZE) {
-                toast.error(`${file.name} is too large (max 5MB)`);
+                toast.error(`${file.name} is too large`);
                 continue;
             }
             validFiles.push(file);
@@ -130,18 +275,17 @@ const ProductForm = () => {
 
         if (validFiles.length === 0) return;
 
-        const newFiles = validFiles.map(file => {
+        const newPreviews = validFiles.map(file => {
             file.previewUrl = URL.createObjectURL(file);
-            return file;
+            return {
+                url: file.previewUrl,
+                isLocal: true,
+                originalFile: file
+            };
         });
-        setImages(prev => [...prev, ...newFiles]);
 
-        const newPreviews = newFiles.map(file => ({
-            url: file.previewUrl,
-            isLocal: true,
-            originalFile: file
-        }));
         setPreviewImages(prev => [...prev, ...newPreviews]);
+        setImages(prev => [...prev, ...validFiles]);
     };
 
     const removeImage = (index) => {
@@ -156,44 +300,53 @@ const ProductForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const data = new FormData();
-            data.append('title', formData.title);
-            data.append('description', formData.description);
-
-            formData.category_ids.forEach(catId => data.append('category_ids', catId));
-
-            data.append('pricing[min_price]', formData.pricing.min_price);
-            data.append('pricing[max_price]', formData.pricing.max_price || formData.pricing.min_price);
-            data.append('pricing[currency]', formData.pricing.currency);
-
-            // 🛡️ Industrial Frontend Validation
-            const validationData = { ...formData, images: previewImages };
+            const validationData = {
+                ...formData,
+                images: previewImages.map(img => typeof img === 'string' ? img : img.url)
+            };
             const result = productSchemas.create.safeParse(validationData);
 
             if (!result.success) {
                 const errors = {};
                 result.error.issues.forEach(issue => {
-                    const path = issue.path.join('.');
-                    errors[path] = issue.message;
+                    errors[issue.path.join('.')] = issue.message;
                 });
                 setFieldErrors(errors);
-                toast.error("Please correct the validation errors.");
+                toast.error("Please correct the validation errors first");
                 return;
             }
 
             setLoading(true);
+            const data = new FormData();
+            data.append('title', formData.title);
+            data.append('description', formData.description);
+            formData.category_ids.forEach(catId => data.append('category_ids', catId));
 
-            images.forEach(image => {
-                data.append('images', image);
+            // Append global images
+            images.forEach(image => data.append('images', image));
+
+            // Handle variants and their images
+            const processedVariants = formData.variants.map((v, idx) => {
+                const variantData = { ...v };
+                if (v.image?.isLocal) {
+                    data.append(`variant_image_${idx}`, v.image.originalFile);
+                    variantData.image = `variant_image_${idx}`;
+                } else if (!v.image) {
+                    variantData.image = null;
+                } else {
+                    variantData.image = v.image; // Keep URL if edit
+                }
+                return variantData;
             });
+
+            data.append('variants', JSON.stringify(processedVariants));
 
             if (isEdit) {
                 await merchantApi.updateProduct(id, data);
-                toast.success('Product updated successfully');
             } else {
                 await merchantApi.createProduct(data);
-                toast.success('Product created as DRAFT');
             }
+            toast.success(isEdit ? 'Product updated' : 'Product created');
             navigate('/merchant/products');
         } catch (error) {
             toast.error(error.message || 'Failed to save product');
@@ -205,284 +358,338 @@ const ProductForm = () => {
     if (fetching) return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
             <div className="w-12 h-12 border-4 border-primary/10 border-t-primary rounded-full animate-spin"></div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Loading Product Data...</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Loading...</p>
         </div>
     );
 
     return (
-        <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
-            {/* Change Request Modal */}
-            <ChangeRequestModal
-                isOpen={showChangeModal}
-                onClose={() => setShowChangeModal(false)}
-                entityType="PRODUCT"
-                entityId={id}
-                currentData={formData}
-                categories={categories}
-            />
-
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+        <div className="max-w-6xl mx-auto space-y-10 pb-20 px-4">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-6">
                 <div className="flex items-center gap-6">
                     <button
                         onClick={() => navigate('/merchant/products')}
-                        className="w-14 h-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary/20 hover:shadow-xl transition-all group"
+                        className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all group"
                     >
-                        <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
+                        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                     </button>
                     <div>
-                        <h1 className="text-3xl font-bold text-primary tracking-tight">
-                            {isEdit ? 'Edit Product' : 'Create New Product'}
+                        <h1 className="text-2xl font-black text-primary tracking-tight">
+                            {isEdit ? 'Manage Product' : 'Industry Catalog Entry'}
                         </h1>
-                        <p className="text-gray-500 font-medium text-sm mt-1">
-                            {isEdit ? 'Update details for your catalog item.' : 'Set up your base product. You can add variants later.'}
+                        <p className="text-gray-400 text-xs font-medium uppercase tracking-[0.2em] mt-1">
+                            {isEdit ? `Ref: ${id.slice(-8)}` : 'Create a professional high-converting product'}
                         </p>
                     </div>
                 </div>
-
-                {isEdit && ['APPROVED', 'PENDING'].includes(productStatus) && (
-                    <div className="bg-primary/5 border border-primary/10 rounded-2xl px-6 py-4 flex items-center gap-4">
-                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary italic font-black">
-                            {productStatus.charAt(0)}
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-bold text-primary uppercase tracking-widest whitespace-nowrap">Status: {productStatus}</p>
-                            <p className="text-[11px] text-gray-500 font-medium italic">Edit permissions restricted</p>
-                        </div>
-                    </div>
-                )}
             </div>
 
-            {isEdit && ['APPROVED', 'PENDING'].includes(productStatus) && (
-                <div className="bg-primary rounded-[2rem] p-8 text-white flex flex-col md:flex-row items-center gap-8 shadow-2xl shadow-primary/20 relative overflow-hidden animate-in zoom-in duration-500">
-                    <div className="relative z-10 w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-accent italic font-black text-2xl">
-                        !
-                    </div>
-                    <div className="relative z-10 flex-1 space-y-1">
-                        <h4 className="text-lg font-black tracking-tight italic">Product Locked</h4>
-                        <p className="text-white/60 text-sm font-medium leading-relaxed">
-                            Primary fields (Title, Categories, Content) are locked because the product is {productStatus === 'APPROVED' ? 'Approved' : 'Pending Verification'}.
-                            Please submit a change request to modify these fields.
-                        </p>
-                    </div>
-                    <div className="relative z-10 flex flex-col sm:flex-row gap-4">
-                        <button
-                            type="button"
-                            onClick={() => setShowChangeModal(true)}
-                            className="px-8 py-3 bg-accent text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-primary transition-all shadow-lg active:scale-95 flex items-center gap-2"
-                        >
-                            <Clock size={16} />
-                            Request Change
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => navigate('/merchant/requests')}
-                            className="px-8 py-3 bg-white/10 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white/20 transition-all font-inter"
-                        >
-                            View Requests
-                        </button>
-                    </div>
-                    <Lock size={200} className="absolute -right-10 -bottom-10 text-white/5 rotate-12" />
-                </div>
-            )}
-
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                <div className="lg:col-span-2 space-y-10">
-                    {/* Basic Information */}
-                    <div className="card-premium p-10 space-y-8">
+                <div className="lg:col-span-2 space-y-8">
+                    {/* Card 1: Core Identity */}
+                    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 md:p-10 shadow-sm space-y-8">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-primary border border-gray-100 italic font-black">
-                                01
+                            <div className="w-12 h-12 bg-primary/5 text-primary rounded-2xl flex items-center justify-center italic font-black text-lg">01</div>
+                            <div>
+                                <h3 className="text-xl font-black text-primary tracking-tight">General Information</h3>
+                                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Foundational product details</p>
                             </div>
-                            <h2 className="text-xl font-black text-primary tracking-tight">Basic Details</h2>
                         </div>
 
-                        <div className="space-y-6">
-                            <div className="relative group">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block">Product Title</label>
+                        <div className="grid gap-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Product Title</label>
                                 <input
                                     type="text"
-                                    placeholder="e.g., Premium Leather Jacket"
-                                    className={`w-full px-8 py-5 bg-gray-50/50 border ${fieldErrors.title ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-sm font-black tracking-tight text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all placeholder:text-gray-300 ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-50 cursor-not-allowed pr-14' : ''}`}
+                                    className={`w-full px-8 py-5 bg-gray-50/50 border ${fieldErrors.title ? 'border-red-500' : 'border-gray-100'} rounded-3xl text-sm font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
+                                    placeholder="e.g. Minimalist Cotton Hoodie"
                                     value={formData.title}
-                                    onChange={(e) => {
-                                        setFormData({ ...formData, title: e.target.value });
-                                        if (fieldErrors.title) setFieldErrors(prev => {
-                                            const newE = { ...prev }; delete newE.title; return newE;
-                                        });
-                                    }}
-                                    onBlur={(e) => handleBlur('title', e.target.value)}
-                                    required
-                                    disabled={['APPROVED', 'PENDING'].includes(productStatus)}
+                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                    onBlur={e => handleBlur('title', e.target.value)}
                                 />
-                                {fieldErrors.title && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold italic underline decoration-red-200">! {fieldErrors.title}</p>}
-                                {['APPROVED', 'PENDING'].includes(productStatus) && (
-                                    <Lock size={18} className="absolute right-6 bottom-5 text-accent" />
-                                )}
+                                {fieldErrors.title && <p className="text-[10px] text-red-500 font-bold italic mt-1 ml-4 underline decoration-red-200">! {fieldErrors.title}</p>}
                             </div>
 
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 block">Description</label>
-                                <div className="relative">
-                                    <textarea
-                                        className={`w-full px-8 py-6 bg-gray-50/50 border ${fieldErrors.description ? 'border-red-500' : 'border-gray-100'} rounded-3xl text-sm font-medium text-gray-600 leading-relaxed focus:ring-4 focus:ring-primary/5 focus:border-primary min-h-[200px] transition-all placeholder:text-gray-300 italic ${['APPROVED', 'PENDING'].includes(productStatus) ? 'opacity-50 cursor-not-allowed pr-14' : ''}`}
-                                        placeholder="Describe your product materials, features, and care instructions..."
-                                        value={formData.description}
-                                        onChange={(e) => {
-                                            setFormData({ ...formData, description: e.target.value });
-                                            if (fieldErrors.description) setFieldErrors(prev => {
-                                                const newE = { ...prev }; delete newE.description; return newE;
-                                            });
-                                        }}
-                                        onBlur={(e) => handleBlur('description', e.target.value)}
-                                        required
-                                        disabled={['APPROVED', 'PENDING'].includes(productStatus)}
-                                    />
-                                    {fieldErrors.description && <p className="text-[10px] text-red-500 mt-2 ml-2 font-bold italic underline decoration-red-200">! {fieldErrors.description}</p>}
-                                    {['APPROVED', 'PENDING'].includes(productStatus) && (
-                                        <Lock size={18} className="absolute right-6 top-6 text-accent" />
-                                    )}
-                                </div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Composition & Narrative</label>
+                                <textarea
+                                    className={`w-full px-8 py-6 bg-gray-50/50 border ${fieldErrors.description ? 'border-red-500' : 'border-gray-100'} rounded-[2rem] text-sm font-medium text-gray-600 leading-relaxed min-h-[180px] focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
+                                    placeholder="Tell your product's story, materials, and care..."
+                                    value={formData.description}
+                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                    onBlur={e => handleBlur('description', e.target.value)}
+                                />
+                                {fieldErrors.description && <p className="text-[10px] text-red-500 font-bold italic mt-1 ml-4 underline decoration-red-200">! {fieldErrors.description}</p>}
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Commercial Tags</label>
+                                <SearchableSelect
+                                    options={categories}
+                                    selectedValues={formData.category_ids}
+                                    onSelect={id => setFormData({ ...formData, category_ids: [...formData.category_ids, id] })}
+                                    onRemove={id => setFormData({ ...formData, category_ids: formData.category_ids.filter(v => v !== id) })}
+                                />
+                                {fieldErrors.category_ids && <p className="text-[10px] text-red-500 font-bold italic mt-1 ml-4 underline decoration-red-200">! {fieldErrors.category_ids}</p>}
                             </div>
                         </div>
                     </div>
 
-                    {/* Media Gallery */}
-                    <div className="card-premium p-10 space-y-8">
+                    {/* Card 2: Visual Symphony */}
+                    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 md:p-10 shadow-sm space-y-8">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-primary border border-gray-100">
-                                    <Upload size={20} />
+                                <div className="w-12 h-12 bg-primary/5 text-primary rounded-2xl flex items-center justify-center italic font-black text-lg">02</div>
+                                <div>
+                                    <h3 className="text-xl font-black text-primary tracking-tight">Global Media</h3>
+                                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Shared heritage photos</p>
                                 </div>
-                                <h2 className="text-xl font-black text-primary tracking-tight">Product Images</h2>
                             </div>
-                            <div className="flex flex-col items-end gap-2">
-                                <label className={`cursor-pointer ${fieldErrors.images ? 'bg-red-500' : 'bg-primary'} text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent hover:shadow-xl transition-all active:scale-95`}>
-                                    Upload Images
-                                    <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
-                                </label>
-                                {fieldErrors.images && <span className="text-[9px] text-red-500 font-bold uppercase italic tracking-widest">{fieldErrors.images}</span>}
-                            </div>
+                            <label className="bg-primary text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all cursor-pointer shadow-lg active:scale-95">
+                                Add Images
+                                <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
+                            </label>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                             {previewImages.map((img, idx) => (
-                                <div key={idx} className="aspect-square relative w-full bg-gray-50 rounded-[2rem] overflow-hidden border border-gray-100">
-                                    <img src={img.url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" />
+                                <div key={idx} className="aspect-square relative group bg-gray-50 rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm">
+                                    <img src={img.url || img} alt="" className="w-full h-full object-cover" />
                                     <button
                                         type="button"
                                         onClick={() => removeImage(idx)}
-                                        className="absolute top-4 right-4 p-2 bg-white/90 text-rose-600 rounded-xl shadow-xl hover:scale-110 active:scale-95 transition-all"
+                                        className="absolute top-4 right-4 p-2 bg-white/90 text-red-500 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
                                     >
-                                        <X size={16} />
+                                        <X size={14} />
                                     </button>
-                                    {!img.isLocal && (
-                                        <div className="absolute bottom-4 left-4 px-3 py-1 bg-accent text-white text-[8px] font-black uppercase tracking-widest rounded-lg shadow-lg">
-                                            Saved
-                                        </div>
-                                    )}
                                 </div>
                             ))}
-                            <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-[2rem] hover:border-accent hover:bg-accent/5 transition-all cursor-pointer group">
-                                <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 group-hover:text-accent group-hover:bg-white transition-all shadow-sm">
-                                    <Plus size={24} />
-                                </div>
-                                <span className="text-[10px] font-black text-gray-400 group-hover:text-accent uppercase tracking-[0.2em] mt-4">Add More</span>
+                            <label className="aspect-square border-2 border-dashed border-gray-100 rounded-[2rem] flex flex-col items-center justify-center group hover:border-primary/20 hover:bg-primary/5 transition-all cursor-pointer">
+                                <Plus size={24} className="text-gray-300 group-hover:text-primary transition-all" />
+                                <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest mt-2 group-hover:text-primary">New Shot</span>
                                 <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
                             </label>
                         </div>
                     </div>
-                </div>
 
-                <div className="space-y-10">
-                    {/* Pricing Specifications */}
-                    <div className="card-premium p-10 space-y-8">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-primary border border-gray-100 italic font-black">
-                                ₹
-                            </div>
-                            <h2 className="text-xl font-black text-primary tracking-tight">Pricing</h2>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Min Price (INR)</label>
-                                <input
-                                    type="number"
-                                    placeholder="0"
-                                    className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors['pricing.min_price'] ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
-                                    value={formData.pricing.min_price}
-                                    onChange={(e) => {
-                                        setFormData({ ...formData, pricing: { ...formData.pricing, min_price: e.target.value } });
-                                        if (fieldErrors['pricing.min_price']) setFieldErrors(prev => { const n = { ...prev }; delete n['pricing.min_price']; return n; });
-                                    }
-                                    }
-                                    onBlur={(e) => handleBlur('pricing.min_price', e.target.value)}
-                                    required
-                                />
-                                {fieldErrors['pricing.min_price'] && <p className="text-[10px] text-red-500 mt-1 font-bold italic underline decoration-red-100">! {fieldErrors['pricing.min_price']}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Max Price (Optional)</label>
-                                <input
-                                    type="number"
-                                    placeholder="0"
-                                    className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors['pricing.max_price'] ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
-                                    value={formData.pricing.max_price}
-                                    onChange={(e) => {
-                                        setFormData({ ...formData, pricing: { ...formData.pricing, max_price: e.target.value } });
-                                        if (fieldErrors['pricing.max_price']) setFieldErrors(prev => { const n = { ...prev }; delete n['pricing.max_price']; return n; });
-                                    }}
-                                    onBlur={(e) => handleBlur('pricing.max_price', e.target.value)}
-                                />
-                                {fieldErrors['pricing.max_price'] && <p className="text-[10px] text-red-500 mt-1 font-bold italic underline decoration-red-100">! {fieldErrors['pricing.max_price']}</p>}
+                    {/* Card 3: Variant Management */}
+                    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 md:p-10 shadow-sm space-y-10">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-primary/5 text-primary rounded-2xl flex items-center justify-center italic font-black text-lg">03</div>
+                                <div>
+                                    <h3 className="text-xl font-black text-primary tracking-tight">Product Specs</h3>
+                                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Define core product details</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Taxonomy/Categories */}
-                    <div className="card-premium p-10 space-y-8">
-                        <SearchableSelect
-                            options={categories}
-                            selectedValues={formData.category_ids}
-                            onSelect={(id) => {
-                                if (['APPROVED', 'PENDING'].includes(productStatus)) {
-                                    toast.error('Categories are locked. Request a change.');
-                                    return;
-                                }
-                                setFormData({ ...formData, category_ids: [...formData.category_ids, id] });
-                            }}
-                            onRemove={(id) => {
-                                if (['APPROVED', 'PENDING'].includes(productStatus)) {
-                                    toast.error('Categories are locked. Request a change.');
-                                    return;
-                                }
-                                setFormData({ ...formData, category_ids: formData.category_ids.filter(val => val !== id) });
-                            }}
-                            disabled={['APPROVED', 'PENDING'].includes(productStatus)}
-                        />
-                    </div>
+                        {/* Option Builder (Configuration) */}
+                        <div className="space-y-6 text-left">
+                            <div className="flex items-center justify-between px-2">
+                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Selection Options (e.g. Color, Size)</h4>
+                                <button
+                                    type="button"
+                                    onClick={addAttributeKey}
+                                    className="text-[10px] font-black text-primary hover:underline flex items-center gap-1.5 italic"
+                                >
+                                    <Plus size={14} /> Add new option
+                                </button>
+                            </div>
+                            <div className="flex flex-wrap gap-3 px-2">
+                                {formData.attribute_config.map(key => (
+                                    <div key={key} className="flex items-center gap-3 px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-[10px] font-black text-primary uppercase tracking-widest group/pill ring-1 ring-transparent hover:ring-primary/10 transition-all">
+                                        {key}
+                                        <button
+                                            type="button"
+                                            onClick={() => removeAttributeKey(key)}
+                                            className="text-gray-300 hover:text-red-500 transition-colors"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
 
-                    {/* Form Actions */}
-                    <div className="card-premium p-10 space-y-6 bg-gray-50/50 border-none">
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className={`w-full py-6 rounded-[2rem] font-black uppercase tracking-[0.3em] text-xs transition-all shadow-2xl ${loading ? 'opacity-50' : 'bg-primary text-white hover:bg-black hover:-translate-y-1 shadow-primary/20'}`}
-                        >
-                            {loading ? 'Saving...' : isEdit ? 'Save Product' : 'Create Product'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => navigate('/merchant/products')}
-                            className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-[9px] text-gray-400 hover:text-primary transition-all italic underline underline-offset-8 decoration-gray-200"
-                        >
-                            Cancel
-                        </button>
+                        {productStatus === 'APPROVED' ? (
+                            /* Specialist Redirect Dashboard (Industrial) */
+                            <div className="bg-primary/5 border border-primary/10 rounded-[2.5rem] p-10 text-center space-y-8 animate-in zoom-in-95 duration-500">
+                                <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+                                    <Layout size={32} className="text-primary" />
+                                </div>
+                                <div className="space-y-3 max-w-md mx-auto">
+                                    <h4 className="text-2xl font-black text-primary italic tracking-tight">Variation Matrix Locked</h4>
+                                    <p className="text-gray-500 text-sm font-medium leading-relaxed">
+                                        This product is currently **Active**. Global identity is managed here, but surgical variation edits (Price, SKU, Images) are handled in the specialized manager.
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-xl mx-auto">
+                                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Variants</div>
+                                        <div className="text-2xl font-black italic text-primary">{formData.variants.length}</div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Stock</div>
+                                        <div className="text-2xl font-black italic text-primary">
+                                            {formData.variants.reduce((acc, v) => acc + Number(v.stock || 0), 0)}
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm col-span-2 md:col-span-1">
+                                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Price Range</div>
+                                        <div className="text-xl font-black italic text-primary">
+                                            ₹{Math.min(...formData.variants.map(v => Number(v.price)))} - ₹{Math.max(...formData.variants.map(v => Number(v.price)))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => navigate(`/merchant/variants/${id}`)}
+                                    className="inline-flex items-center gap-4 px-10 py-6 bg-primary text-white rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-primary/30 hover:bg-accent hover:-translate-y-1 transition-all active:scale-95 group"
+                                >
+                                    Manage Detailed Variations
+                                    <ArrowLeft size={16} className="rotate-180 group-hover:translate-x-2 transition-transform" />
+                                </button>
+                            </div>
+                        ) : (
+                            /* Simplified Single Variant View (Inspired by Variants.jsx) */
+                            <div className="bg-gray-50/50 rounded-[2.5rem] p-8 border border-gray-100 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 text-left">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                                    <div className="space-y-6 text-left">
+                                        <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Attributes & Options</h5>
+                                        <div className="space-y-4 text-left">
+                                            {formData.attribute_config.map(key => (
+                                                <div key={key} className="space-y-2">
+                                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{key}</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder={`Enter ${key}... (e.g. ${key.toLowerCase() === 'size' ? 'Large' : 'Crimson Red'})`}
+                                                        className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                                        value={formData.variants[0].attributes[key] || ''}
+                                                        onChange={e => handleVariantChange(0, `attributes.${key}`, e.target.value)}
+                                                    />
+                                                </div>
+                                            ))}
+                                            {formData.attribute_config.length === 0 && (
+                                                <p className="text-[10px] text-gray-400 font-bold italic p-4 bg-white rounded-2xl border border-dashed border-gray-100">Click "Add new option" to define attributes like Color or Material.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-6 text-left">
+                                        <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Commercial Specs</h5>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2 text-left">
+                                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Price (INR)</label>
+                                                <input
+                                                    type="number"
+                                                    placeholder="0.00"
+                                                    className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                                    value={formData.variants[0].price}
+                                                    onChange={e => handleVariantChange(0, 'price', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="space-y-2 text-left">
+                                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Stock</label>
+                                                <input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                                    value={formData.variants[0].stock}
+                                                    onChange={e => handleVariantChange(0, 'stock', e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        {formData.showAdvanced && (
+                                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 text-left">
+                                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">SKU (Auto-Generated)</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Leave blank for auto"
+                                                    className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-xs font-black text-gray-400 focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                                    value={formData.variants[0].sku}
+                                                    onChange={e => handleVariantChange(0, 'sku', e.target.value.toUpperCase())}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
-            </form>
-        </div>
+
+                <div className="space-y-8">
+                    {/* Fixed Sidebar Actions */}
+                    <div className="sticky top-10 space-y-8">
+                        <div className="bg-primary rounded-[2.5rem] p-10 text-white shadow-2xl shadow-primary/20 space-y-8">
+                            <div className="space-y-1">
+                                <h4 className="text-xl font-black italic tracking-tight">Commercialization</h4>
+                                <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Final platform review</p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between text-xs font-bold">
+                                    <span className="text-white/60">Global Photos</span>
+                                    <span>{previewImages.length}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs font-bold">
+                                    <span className="text-white/60">Active Variants</span>
+                                    <span>{formData.variants.length}</span>
+                                </div>
+                                <div className="h-[1px] bg-white/10" />
+                                <div className="flex flex-col gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, showAdvanced: !formData.showAdvanced })}
+                                        className="flex items-center justify-between group/adv"
+                                    >
+                                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest group-hover/adv:text-accent transition-colors">Advanced Settings</span>
+                                        <div className={`w-8 h-4 rounded-full p-0.5 transition-all ${formData.showAdvanced ? 'bg-accent' : 'bg-white/10'}`}>
+                                            <div className={`w-3 h-3 bg-white rounded-full transition-all ${formData.showAdvanced ? 'translate-x-4' : 'translate-x-0'}`} />
+                                        </div>
+                                    </button>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Pricing Strategy</span>
+                                        <p className="text-lg font-black italic text-accent">
+                                            {formData.variants[0]?.price ? `Starts at ₹${Math.min(...formData.variants.filter(v => v.price).map(v => Number(v.price)))}` : 'Entry Level TBD'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4">
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className={`w-full py-6 bg-white text-primary rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl hover:bg-accent hover:text-white transition-all transform hover:-translate-y-1 active:scale-95 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    {loading ? 'Processing...' : isEdit ? 'Update Catalog' : 'Launch Product'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/merchant/products')}
+                                    className="w-full py-4 text-white/40 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest italic"
+                                >
+                                    Cancel & Return
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Status Guard */}
+                        {isEdit && (
+                            <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm group hover:border-primary/20 transition-all">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-3 h-3 rounded-full animate-pulse ${productStatus === 'APPROVED' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                    <div className="text-[10px] font-black text-primary uppercase tracking-[0.2em] italic">Live Visibility: {productStatus}</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </form >
+        </div >
     );
 };
 

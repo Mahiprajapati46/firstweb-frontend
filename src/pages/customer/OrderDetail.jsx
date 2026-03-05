@@ -17,7 +17,8 @@ import {
     ShoppingBag,
     ShieldCheck,
     Sparkles,
-    Star
+    Star,
+    FileText
 } from 'lucide-react';
 import customerApi from '../../api/customer';
 import toast from 'react-hot-toast';
@@ -162,6 +163,7 @@ const OrderDetail = () => {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [selectedItemForReview, setSelectedItemForReview] = useState(null);
     const [myReviews, setMyReviews] = useState([]);
+    const [invoiceLoading, setInvoiceLoading] = useState(false);
 
     useEffect(() => {
         fetchOrderDetail();
@@ -239,6 +241,18 @@ const OrderDetail = () => {
         }
     };
 
+    const handleDownloadInvoice = async () => {
+        try {
+            setInvoiceLoading(true);
+            await customerApi.downloadInvoice(orderId, order?.order_number);
+            toast.success('Invoice downloaded successfully');
+        } catch (error) {
+            toast.error(error.message || 'Failed to download invoice');
+        } finally {
+            setInvoiceLoading(false);
+        }
+    };
+
     // Polling for live updates
     useEffect(() => {
         const terminalStates = ['DELIVERED', 'CANCELLED', 'RETURNED', 'RETURN_REJECTED'];
@@ -302,9 +316,21 @@ const OrderDetail = () => {
                         <ArrowLeft size={20} />
                         <span className="text-sm font-bold">Back</span>
                     </button>
-                    <div className="text-right">
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Order #{order_number}</p>
-                        <p className="text-xs font-medium text-gray-500">{new Date(created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    <div className="flex flex-wrap items-center gap-4">
+                        <div className="text-right">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Order #{order_number}</p>
+                            <p className="text-xs font-medium text-gray-500">{new Date(created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        </div>
+                        {['CONFIRMED', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'RETURNED'].includes(status) && (
+                            <button
+                                onClick={handleDownloadInvoice}
+                                disabled={invoiceLoading}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#24b47e]/10 text-[#24b47e] rounded-xl text-xs font-bold hover:bg-[#24b47e]/20 transition-all disabled:opacity-50"
+                            >
+                                <FileText size={16} />
+                                {invoiceLoading ? 'Downloading...' : 'Invoice'}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

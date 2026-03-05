@@ -13,6 +13,7 @@ import {
     ListChecks,
     Settings,
     History,
+    MessageSquare,
     LogOut,
     Menu,
     X,
@@ -61,6 +62,7 @@ const AdminLayout = ({ children }) => {
         { icon: ShieldCheck, label: 'Products Moderation', path: '/admin/products' },
         { icon: FolderTree, label: 'Categories', path: '/admin/categories' },
         { icon: ListChecks, label: 'Category Requests', path: '/admin/category-requests' },
+        { icon: MessageSquare, label: 'Review Moderation', path: '/admin/reviews' },
         { icon: ShoppingCart, label: 'Orders', path: '/admin/orders' },
         { icon: Users, label: 'Users', path: '/admin/users' }, // Moved here as per instruction
         { icon: Ticket, label: 'Coupons', path: '/admin/coupons' },

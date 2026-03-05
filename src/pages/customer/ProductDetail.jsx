@@ -11,7 +11,8 @@ import {
     ArrowLeft,
     Sparkles,
     ShoppingBasket,
-    Info
+    Info,
+    CheckCircle2
 } from 'lucide-react';
 import customerApi from '../../api/customer';
 import { useAuth } from '../../context/AuthContext';
@@ -106,14 +107,33 @@ const ProductDetail = () => {
         }
     };
 
-    const allImages = [
-        ...(product?.images || []),
-        ...(selectedVariant?.images || [])
-    ].filter((img, idx, self) => img && self.indexOf(img) === idx);
+    // 🖼️ Phase 14: Stabilize Image Gallery & Image-to-Variant Mapping
+    const { allImages, imageMap } = React.useMemo(() => {
+        const productImages = product?.images || [];
+        const map = new Map();
 
-    if (allImages.length === 0) {
-        allImages.push('https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1999');
-    }
+        // 1. Identify all unique variant images and map them back to their first variant
+        const variantImages = [];
+        variants.forEach(v => {
+            (v.images || []).forEach(img => {
+                if (!map.has(img)) {
+                    map.set(img, v);
+                    variantImages.push(img);
+                }
+            });
+        });
+
+        // 2. Collect unique global images
+        const uniqueGlobal = productImages.filter(img => !map.has(img));
+
+        // 3. Combine: Variant Priority (distinct visual options) then Global extras
+        const result = [...variantImages, ...uniqueGlobal].filter(Boolean);
+
+        if (result.length === 0) {
+            result.push('https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1999');
+        }
+        return { allImages: result, imageMap: map };
+    }, [product?.images, variants]);
 
     useEffect(() => {
         // If a variant is selected, jump to its first image
@@ -123,32 +143,69 @@ const ProductDetail = () => {
             if (index !== -1) {
                 setActiveImage(index);
             }
-        } else {
-            // Otherwise reset to first image if current is out of bounds
-            if (activeImage >= allImages.length) {
-                setActiveImage(0);
-            }
         }
-    }, [selectedVariant?._id, allImages.length]);
+    }, [selectedVariant?._id, allImages]);
+
+    const handleThumbnailClick = (img, index) => {
+        setActiveImage(index);
+
+        // 🔗 Bi-directional Sync: If this image belongs to a variant, select it
+        const mappedVariant = imageMap.get(img);
+        if (mappedVariant && mappedVariant._id !== selectedVariant?._id) {
+            setSelectedVariant(mappedVariant);
+            setSelectedAttributes(mappedVariant.attributes || {});
+        }
+    };
 
     const handleAttributeSelect = (key, value) => {
         const newAttributes = { ...selectedAttributes, [key]: value };
         setSelectedAttributes(newAttributes);
 
-        const matchingVariant = variants.find(v =>
-            Object.entries(newAttributes).every(([k, val]) => v.attributes[k] === val)
+        // Helper to get attribute value case-insensitively
+        const getAttr = (attrs, target) => {
+            const entry = Object.entries(attrs || {}).find(([k]) => k.toLowerCase() === target.toLowerCase());
+            return entry ? entry[1] : undefined;
+        };
+
+        // Find exact match first
+        let matchingVariant = variants.find(v =>
+            Object.entries(newAttributes).every(([k, val]) => getAttr(v.attributes, k) === val)
         );
 
-        setSelectedVariant(matchingVariant || null);
+        // If no exact match, find "Best Match" (pivoting)
+        // This prevents the UI from "locking up" when selecting conflicting attributes
+        if (!matchingVariant) {
+            matchingVariant = variants.find(v => getAttr(v.attributes, key) === value);
+            if (matchingVariant) {
+                // Synchronize attributes to the new "pivot" variant
+                // Need to carefully preserve the keys as they appear in the UI
+                const syncedAttrs = {};
+                Object.keys(attributeGroups).forEach(k => {
+                    syncedAttrs[k] = getAttr(matchingVariant.attributes, k);
+                });
+                setSelectedAttributes(syncedAttrs);
+            }
+        }
+
+        if (matchingVariant) {
+            setSelectedVariant(matchingVariant);
+            // If the selected variant has images, switch to its first image
+            if (matchingVariant.images?.length > 0) {
+                // The images will be at the start of allImages now
+                setActiveImage(0);
+            }
+        } else {
+            setSelectedVariant(null);
+        }
     };
 
     const isAvailable = (key, value) => {
-        return variants.some(v => {
-            const otherAttrsMatch = Object.entries(selectedAttributes)
-                .filter(([k]) => k !== key)
-                .every(([k, val]) => v.attributes[k] === val);
-            return otherAttrsMatch && v.attributes[key] === value && v.stock_quantity > 0;
-        });
+        // 💎 Phase 14: In a "Smart Pivot" system, an option is "available" if IT EXISTS AT ALL.
+        const getAttr = (attrs, target) => {
+            const entry = Object.entries(attrs || {}).find(([k]) => k.toLowerCase() === target.toLowerCase());
+            return entry ? entry[1] : undefined;
+        };
+        return variants.some(v => getAttr(v.attributes, key) === value && v.stock_quantity > 0);
     };
 
     if (loading) {
@@ -171,13 +228,31 @@ const ProductDetail = () => {
 
     if (!product) return null;
 
+    // 💎 Phase 14: Normalize Attribute Grouping (Handles mismatched casing from merchant)
     const attributeGroups = {};
+    const uniqueValuesPerKey = {};
+
     variants.forEach(variant => {
         Object.entries(variant.attributes || {}).forEach(([key, value]) => {
-            if (!attributeGroups[key]) attributeGroups[key] = new Set();
-            attributeGroups[key].add(value);
+            if (!value) return;
+            const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
+            if (!attributeGroups[normalizedKey]) {
+                attributeGroups[normalizedKey] = new Set();
+                uniqueValuesPerKey[normalizedKey] = new Set();
+            }
+            attributeGroups[normalizedKey].add(value);
+            uniqueValuesPerKey[normalizedKey].add(value);
         });
     });
+
+    const activeAttributeGroups = Object.fromEntries(
+        Object.entries(attributeGroups).filter(([key]) => uniqueValuesPerKey[key].size > 1)
+    );
+
+    // Get the "Specs" for display (the redundant ones we filtered out)
+    const productSpecs = Object.entries(attributeGroups)
+        .filter(([key]) => uniqueValuesPerKey[key].size === 1)
+        .map(([key, values]) => ({ key, value: Array.from(values)[0] }));
 
     return (
         <div className="bg-white min-h-screen pb-24">
@@ -222,7 +297,7 @@ const ProductDetail = () => {
                             {allImages.map((img, i) => (
                                 <button
                                     key={i}
-                                    onClick={() => setActiveImage(i)}
+                                    onClick={() => handleThumbnailClick(img, i)}
                                     className={`aspect-[4/5] rounded-lg border transition-all overflow-hidden ${activeImage === i ? 'border-gray-900 ring-2 ring-gray-900/5' : 'border-transparent opacity-60 hover:opacity-100'}`}
                                 >
                                     <img src={img} alt="" className="w-full h-full object-cover" />
@@ -254,11 +329,23 @@ const ProductDetail = () => {
                             </div>
 
                             <p className="text-sm text-gray-600 leading-relaxed max-w-xl">{product.description}</p>
+
+                            {/* 💎 Phase 14: Dynamic Specs (Redundant Attributes) */}
+                            {productSpecs.length > 0 && (
+                                <div className="flex flex-wrap gap-2 pt-2">
+                                    {productSpecs.map((spec, i) => (
+                                        <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg">
+                                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{spec.key}:</span>
+                                            <span className="text-[10px] font-bold text-primary italic uppercase">{spec.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Variant Selection */}
                         <div className="space-y-8 pt-4 border-t border-gray-50">
-                            {Object.entries(attributeGroups).map(([key, values]) => {
+                            {Object.entries(activeAttributeGroups).map(([key, values]) => {
                                 const isColor = key.toLowerCase().includes('color');
 
                                 return (
@@ -278,9 +365,11 @@ const ProductDetail = () => {
                                                     return (
                                                         <button
                                                             key={value}
+                                                            type="button"
                                                             onClick={() => handleAttributeSelect(key, value)}
                                                             title={value}
-                                                            className={`w-9 h-9 rounded-full border-2 transition-all flex items-center justify-center ${isSelected ? 'border-gray-900 ring-2 ring-gray-900/10' : 'border-gray-100'} ${!available && !isSelected ? 'opacity-30 grayscale bg-gray-100' : ''}`}
+                                                            disabled={!available && !isSelected}
+                                                            className={`w-9 h-9 rounded-full border-2 transition-all flex items-center justify-center ${isSelected ? 'border-gray-900 ring-2 ring-gray-900/10' : 'border-gray-100'} ${!available && !isSelected ? 'opacity-20 grayscale bg-gray-100 cursor-not-allowed' : ''}`}
                                                             style={{ backgroundColor: value.toLowerCase() }}
                                                         >
                                                             {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full shadow-sm"></div>}
@@ -291,12 +380,14 @@ const ProductDetail = () => {
                                                 return (
                                                     <button
                                                         key={value}
+                                                        type="button"
                                                         onClick={() => handleAttributeSelect(key, value)}
+                                                        disabled={!available && !isSelected}
                                                         className={`h-11 min-w-[3.5rem] px-5 rounded-md text-[13px] font-semibold transition-all border ${isSelected
                                                             ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
                                                             : available
                                                                 ? 'border-gray-200 text-gray-900 hover:border-gray-900'
-                                                                : 'border-gray-100 text-gray-400 bg-gray-50 opacity-60'
+                                                                : 'border-gray-100 text-gray-300 bg-gray-50 opacity-40 cursor-not-allowed'
                                                             }`}
                                                     >
                                                         {value}
@@ -419,10 +510,18 @@ const ProductDetail = () => {
                                             </div>
                                             <div>
                                                 <h4 className="text-sm font-bold text-primary">{review.user_id?.full_name || 'Verified Client'}</h4>
-                                                <div className="flex gap-0.5 text-accent">
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <Star key={i} size={10} fill={i < review.rating ? "currentColor" : "none"} />
-                                                    ))}
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex gap-0.5 text-accent">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star key={i} size={10} fill={i < review.rating ? "currentColor" : "none"} />
+                                                        ))}
+                                                    </div>
+                                                    {review.is_verified_purchase && (
+                                                        <div className="flex items-center gap-1 text-emerald-600">
+                                                            <CheckCircle2 size={10} />
+                                                            <span className="text-[9px] font-bold uppercase tracking-wider">Verified Purchase</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
