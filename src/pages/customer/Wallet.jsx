@@ -16,7 +16,9 @@ import {
     ShieldCheck
 } from 'lucide-react';
 import customerApi from '../../api/customer';
+import { merchantSchemas } from '../../validations/merchant.schema';
 import toast from 'react-hot-toast';
+import { z } from 'zod';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 const Wallet = () => {
@@ -67,23 +69,90 @@ const Wallet = () => {
         }
     };
 
+    const [fieldErrors, setFieldErrors] = useState({});
+
+    const validateField = (name, value) => {
+        const payoutData = {
+            amount: name === 'amount' ? Number(value) || 0 : Number(withdrawAmount) || 0,
+            method: "BANK_TRANSFER",
+            bank_details: {
+                account_holder_name: "Merchant Owner",
+                account_number: name === 'bank_details.account_number' ? value : bankDetails.account_number,
+                ifsc_code: name === 'bank_details.ifsc_code' ? value : bankDetails.ifsc_code,
+                bank_name: "Primary Bank",
+            }
+        };
+
+        const result = merchantSchemas.withdrawalRequest.safeParse(payoutData);
+
+        if (result.success) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        } else {
+            // Find error for THIS field. Try both full path and leaf name.
+            const fieldError = result.error.issues.find(err =>
+                err.path.join('.') === name || err.path[err.path.length - 1] === name
+            );
+
+            if (fieldError) {
+                setFieldErrors(prev => ({ ...prev, [name]: fieldError.message }));
+            } else {
+                setFieldErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[name];
+                    return newErrors;
+                });
+            }
+        }
+    };
+
     const handleWithdraw = async () => {
-        if (!withdrawAmount || isNaN(withdrawAmount) || withdrawAmount <= 0) {
-            return toast.error('Please enter a valid amount');
+        setFieldErrors({});
+
+        const payoutData = {
+            amount: Number(withdrawAmount) || 0,
+            method: "BANK_TRANSFER",
+            bank_details: {
+                account_holder_name: bankDetails.recipient_name || "Merchant Owner",
+                account_number: bankDetails.account_number,
+                ifsc_code: bankDetails.ifsc_code,
+                bank_name: bankDetails.bank_name || bankDetails.recipient_name || "Primary Bank",
+            }
+        };
+
+        const result = merchantSchemas.withdrawalRequest.safeParse(payoutData);
+
+        if (!result.success) {
+            const errors = {};
+            result.error.issues.forEach(err => {
+                const dotPath = err.path.join('.');
+                const leafPath = err.path[err.path.length - 1];
+                errors[dotPath] = err.message;
+                // Also map to leaf path just in case JSX uses that
+                if (leafPath && !errors[leafPath]) {
+                    errors[leafPath] = err.message;
+                }
+            });
+            setFieldErrors(errors);
+            toast.error("Please provide valid information");
+            return;
         }
-        if (withdrawAmount > balance) {
-            return toast.error('Insufficient balance');
-        }
-        if (!bankDetails.account_number || !bankDetails.ifsc_code) {
-            return toast.error('Account number and IFSC code are required');
+
+        if (payoutData.amount > balance) {
+            setFieldErrors(prev => ({ ...prev, amount: 'Insufficient wallet balance' }));
+            return toast.error('Insufficient wallet balance');
         }
 
         try {
             setProcessing(true);
-            await customerApi.withdrawWallet(Number(withdrawAmount), bankDetails);
+            await customerApi.withdrawWallet(payoutData.amount, bankDetails);
             toast.success('Withdrawal request submitted');
             setShowWithdrawModal(false);
             setWithdrawAmount('');
+            setBankDetails({ account_number: '', ifsc_code: '', bank_name: '', recipient_name: '' });
             fetchWalletData();
         } catch (error) {
             toast.error(error.message || 'Withdrawal failed');
@@ -297,55 +366,99 @@ const Wallet = () => {
             {showWithdrawModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setShowWithdrawModal(false)} />
-                    <div className="bg-white w-full max-w-lg rounded-2xl p-8 relative z-10 shadow-2xl animate-in zoom-in-95 duration-300">
+                    <div className="bg-white w-full max-w-2xl rounded-2xl p-8 relative z-10 shadow-2xl animate-in zoom-in-95 duration-300">
                         <button onClick={() => setShowWithdrawModal(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
                             <X size={20} />
                         </button>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                            {/* Left Column: Amount */}
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                     <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Withdraw</h2>
                                     <p className="text-xs text-gray-500 font-medium">To your primary bank account.</p>
                                 </div>
 
+                                {Object.keys(fieldErrors).length > 0 && (
+                                    <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Attention Required</p>
+                                            <p className="text-[10px] font-medium text-red-500 leading-tight">
+                                                Please correct the {Object.keys(fieldErrors).length} error(s) identified in red before proceeding.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="space-y-4">
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Amount</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
+                                            Amount <span className="text-red-500">*</span>
+                                        </label>
                                         <div className="relative">
                                             <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">₹</span>
                                             <input
                                                 type="number"
                                                 value={withdrawAmount}
                                                 onChange={(e) => setWithdrawAmount(e.target.value)}
-                                                className="w-full pl-10 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-xl text-lg font-bold text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all"
+                                                onBlur={(e) => validateField('amount', e.target.value)}
+                                                placeholder="Min. 500"
+                                                className={`w-full pl-10 pr-6 py-4 bg-gray-50 border-2 ${fieldErrors.amount ? 'border-red-500 bg-red-50/10' : 'border-gray-100'} rounded-xl text-lg font-bold text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all`}
                                             />
                                         </div>
+                                        {fieldErrors.amount && (
+                                            <div className="flex items-center gap-1.5 px-1 py-0.5">
+                                                <AlertCircle size={10} className="text-red-500" />
+                                                <p className="text-[10px] text-red-500 font-bold tracking-tight">{fieldErrors.amount}</p>
+                                            </div>
+                                        )}
                                         <div className="flex justify-between px-1">
                                             <span className="text-[9px] font-bold text-gray-400 uppercase">Avail: ₹{balance}</span>
-                                            <button onClick={() => setWithdrawAmount(balance.toString())} className="text-[9px] font-bold text-primary uppercase">Withdraw All</button>
+                                            <button onClick={() => { setWithdrawAmount(balance.toString()); validateField('amount', balance); }} className="text-[9px] font-bold text-primary uppercase">Withdraw All</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-6 pt-2 md:pt-12">
+                            {/* Right Column: Bank Details & Action */}
+                            <div className="space-y-6">
                                 <div className="space-y-4">
                                     <div className="space-y-3">
-                                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Bank Details</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Account Number"
-                                            value={bankDetails.account_number}
-                                            onChange={(e) => setBankDetails({ ...bankDetails, account_number: e.target.value })}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all"
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="IFSC Code"
-                                            value={bankDetails.ifsc_code}
-                                            onChange={(e) => setBankDetails({ ...bankDetails, ifsc_code: e.target.value })}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all"
-                                        />
+                                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">
+                                            Bank Details <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="space-y-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Account Number"
+                                                value={bankDetails.account_number}
+                                                onChange={(e) => setBankDetails({ ...bankDetails, account_number: e.target.value })}
+                                                onBlur={(e) => validateField('bank_details.account_number', e.target.value)}
+                                                className={`w-full px-4 py-3 bg-gray-50 border-2 ${fieldErrors['bank_details.account_number'] ? 'border-red-500 bg-red-50/10' : 'border-gray-100'} rounded-lg text-xs font-bold text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all`}
+                                            />
+                                            {fieldErrors['bank_details.account_number'] && (
+                                                <div className="flex items-center gap-1.5 px-1 py-0.5">
+                                                    <AlertCircle size={10} className="text-red-500" />
+                                                    <p className="text-[9px] text-red-500 font-bold tracking-tight">{fieldErrors['bank_details.account_number']}</p>
+                                                </div>
+                                            )}
+
+                                            <input
+                                                type="text"
+                                                placeholder="IFSC Code (e.g., SYNB0001234)"
+                                                value={bankDetails.ifsc_code}
+                                                onChange={(e) => setBankDetails({ ...bankDetails, ifsc_code: e.target.value })}
+                                                onBlur={(e) => validateField('bank_details.ifsc_code', e.target.value)}
+                                                className={`w-full px-4 py-3 bg-gray-50 border-2 ${fieldErrors['bank_details.ifsc_code'] ? 'border-red-500 bg-red-50/10' : 'border-gray-100'} rounded-lg text-xs font-bold text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all`}
+                                            />
+                                            {fieldErrors['bank_details.ifsc_code'] && (
+                                                <div className="flex items-center gap-1.5 px-1 py-0.5">
+                                                    <AlertCircle size={10} className="text-red-500" />
+                                                    <p className="text-[9px] text-red-500 font-bold tracking-tight">{fieldErrors['bank_details.ifsc_code']}</p>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
@@ -356,7 +469,7 @@ const Wallet = () => {
 
                                     <button
                                         onClick={handleWithdraw}
-                                        disabled={processing || !withdrawAmount || Number(withdrawAmount) > balance}
+                                        disabled={processing}
                                         className="w-full py-4 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-secondary transition-all disabled:opacity-50"
                                     >
                                         {processing ? 'Submitting Request...' : 'Send Payout Request'}

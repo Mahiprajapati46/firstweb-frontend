@@ -17,6 +17,7 @@ import {
 import adminApi from '../../api/admin';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { adminSchemas } from '../../validations/admin.schema';
 import { toast } from 'react-hot-toast';
 
 const CouponStatus = ({ isActive, expiryDate }) => {
@@ -53,6 +54,7 @@ const Coupons = () => {
     const [modalMode, setModalMode] = useState('create'); // 'create' | 'edit'
     const [selectedCoupon, setSelectedCoupon] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
 
     // Form State
     const [formData, setFormData] = useState({
@@ -83,6 +85,23 @@ const Coupons = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleBlur = (name, value) => {
+        const data = { ...formData, [name]: value };
+        const result = adminSchemas.coupon.safeParse(data);
+        if (!result.success) {
+            const fieldIssue = result.error.issues.find(i => i.path[0] === name);
+            if (fieldIssue) {
+                setFieldErrors(prev => ({ ...prev, [name]: fieldIssue.message }));
+                return;
+            }
+        }
+        setFieldErrors(prev => {
+            const n = { ...prev };
+            delete n[name];
+            return n;
+        });
     };
 
     const handleOpenModal = (mode, coupon = null) => {
@@ -120,9 +139,16 @@ const Coupons = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setFieldErrors({});
 
-        if (!formData.code || !formData.discount_value || !formData.expiry_date) {
-            toast.error('Please fill in all required fields');
+        const result = adminSchemas.coupon.safeParse(formData);
+        if (!result.success) {
+            const errors = {};
+            result.error.issues.forEach(issue => {
+                errors[issue.path[0]] = issue.message;
+            });
+            setFieldErrors(errors);
+            toast.error('Please fix the errors in the form');
             return;
         }
 
@@ -326,6 +352,8 @@ const Coupons = () => {
                                     label="Coupon Code"
                                     value={formData.code}
                                     onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                                    onBlur={(e) => handleBlur('code', e.target.value.toUpperCase())}
+                                    error={fieldErrors.code}
                                     placeholder="SUMMER2026"
                                     disabled={modalMode === 'edit'} // Code is usually immutable after creation
                                     required
@@ -335,11 +363,13 @@ const Coupons = () => {
                                     <label className="block text-sm font-bold text-gray-700">Expiry Date</label>
                                     <input
                                         type="date"
-                                        className="w-full px-4 py-3 bg-gray-50 border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-gray-900"
+                                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-medium text-gray-900 ${fieldErrors.expiry_date ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-primary'}`}
                                         value={formData.expiry_date}
                                         onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
+                                        onBlur={(e) => handleBlur('expiry_date', e.target.value)}
                                         required
                                     />
+                                    {fieldErrors.expiry_date && <p className="text-[10px] text-red-500 font-bold uppercase tracking-tight mt-1">{fieldErrors.expiry_date}</p>}
                                 </div>
                             </div>
 
@@ -347,7 +377,10 @@ const Coupons = () => {
                                 label="Description"
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                onBlur={(e) => handleBlur('description', e.target.value)}
+                                error={fieldErrors.description}
                                 placeholder="Summer sale 20% off..."
+                                required
                             />
 
                             <div className="p-6 bg-gray-50/50 rounded-2xl border border-gray-100 space-y-6">
@@ -371,6 +404,8 @@ const Coupons = () => {
                                         type="number"
                                         value={formData.discount_value}
                                         onChange={(e) => setFormData({ ...formData, discount_value: e.target.value })}
+                                        onBlur={(e) => handleBlur('discount_value', e.target.value)}
+                                        error={fieldErrors.discount_value}
                                         placeholder={formData.discount_type === 'PERCENTAGE' ? '20' : '500'}
                                         disabled={modalMode === 'edit'}
                                         required
@@ -381,6 +416,8 @@ const Coupons = () => {
                                         type="number"
                                         value={formData.min_order_amount}
                                         onChange={(e) => setFormData({ ...formData, min_order_amount: e.target.value })}
+                                        onBlur={(e) => handleBlur('min_order_amount', e.target.value)}
+                                        error={fieldErrors.min_order_amount}
                                         placeholder="0"
                                     />
                                     {formData.discount_type === 'PERCENTAGE' && (
@@ -389,6 +426,8 @@ const Coupons = () => {
                                             type="number"
                                             value={formData.max_discount_amount}
                                             onChange={(e) => setFormData({ ...formData, max_discount_amount: e.target.value })}
+                                            onBlur={(e) => handleBlur('max_discount_amount', e.target.value)}
+                                            error={fieldErrors.max_discount_amount}
                                             placeholder="1000"
                                         />
                                     )}
@@ -401,6 +440,8 @@ const Coupons = () => {
                                     type="number"
                                     value={formData.usage_limit}
                                     onChange={(e) => setFormData({ ...formData, usage_limit: e.target.value })}
+                                    onBlur={(e) => handleBlur('usage_limit', e.target.value)}
+                                    error={fieldErrors.usage_limit}
                                     placeholder="Leave empty for unlimited"
                                 />
                                 <Input
@@ -408,6 +449,8 @@ const Coupons = () => {
                                     type="number"
                                     value={formData.user_usage_limit}
                                     onChange={(e) => setFormData({ ...formData, user_usage_limit: e.target.value })}
+                                    onBlur={(e) => handleBlur('user_usage_limit', e.target.value)}
+                                    error={fieldErrors.user_usage_limit}
                                     placeholder="1"
                                 />
                             </div>

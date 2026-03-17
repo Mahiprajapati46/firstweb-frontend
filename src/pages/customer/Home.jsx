@@ -141,41 +141,39 @@ const Home = () => {
     const sellerState = !user ? { from: { pathname: '/merchant/apply' } } : undefined;
 
     return (
-        <div className="min-h-screen bg-[#eae0d5] text-primary">
-
-            {/* ─── Hero (Executive Impact) ─── */}
-            <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
-                {/* Visual Background Layer */}
+        <div className="min-h-screen bg-white text-primary selection:bg-accent selection:text-white">
+            {/* ─── Hero (Executive & Compact) ─── */}
+            <section className="relative min-h-[60vh] flex items-center justify-center overflow-hidden bg-gray-50">
+                {/* Refined Background Overlay */}
                 <div className="absolute inset-0 z-0">
                     <img
-                        src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2000"
-                        alt="Corporate Background"
-                        className="w-full h-full object-cover opacity-20"
+                        src="https://res.cloudinary.com/dkaxoygi2/image/upload/v1773549332/ecommerce/general/hero_bg_premium_fixed.jpg"
+                        alt="Retail Excellence"
+                        className="w-full h-full object-cover opacity-50 mix-blend-multiply"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background" />
-                    <div className="absolute inset-0 bg-radial-at-t from-accent/5 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/50 to-white" />
                 </div>
 
-                <div className="premium-container relative z-10 flex flex-col items-center text-center">
-                    <div className="inline-flex items-center gap-3 bg-white/50 backdrop-blur-md border border-gray-100 px-6 py-2 rounded-full shadow-xl shadow-primary/5 mb-10 animate-in fade-in slide-in-from-top-4 duration-1000">
-                        <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">India's Premium Collective</span>
+                <div className="premium-container relative z-10 flex flex-col items-center text-center py-20">
+                    <div className="inline-flex items-center gap-3 bg-white border border-gray-100 px-6 py-2.5 rounded-full shadow-2xl shadow-primary/5 mb-8 animate-in fade-in slide-in-from-top-4 duration-1000">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                        <span className="premium-subheading !text-[10px] !tracking-[0.3em]">India’s Premium Marketplace, Reimagined.</span>
                     </div>
 
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-primary tracking-tighter leading-[1.1] mb-8 max-w-5xl animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                    <h1 className="premium-heading mb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 max-w-4xl">
                         Modern Commerce <br />
-                        <span className="text-accent italic font-serif font-normal">Redefined.</span>
+                        <span className="text-accent font-serif font-normal">Redefined</span>
                     </h1>
 
-                    <p className="text-lg md:text-xl text-primary/40 font-medium max-w-2xl leading-relaxed mb-12 animate-in fade-in slide-in-from-bottom-10 duration-1000">
-                        A globally trusted marketplace connecting premium manufacturers with discerning customers. Precision, quality, and trust in every transaction.
+                    <p className="text-base md:text-lg text-gray-400 font-medium max-w-2xl leading-relaxed mb-10 animate-in fade-in slide-in-from-bottom-10 duration-1000">
+                        Where premium manufacturers meet discerning customers. Experience seamless, trustworthy transactions.
                     </p>
 
-                    <div className="flex flex-wrap items-center justify-center gap-6 animate-in fade-in slide-in-from-bottom-12 duration-1200">
-                        <Link to="/products" className="btn-boutique-primary shadow-2xl shadow-primary/20 scale-110">
+                    <div className="flex flex-wrap items-center justify-center gap-5 animate-in fade-in slide-in-from-bottom-12 duration-1200">
+                        <Link to="/products" className="btn-boutique-primary !px-12 !py-4.5 shadow-xl shadow-primary/10 transition-transform hover:scale-105">
                             Enter Marketplace
                         </Link>
-                        <Link to={sellerLink} state={sellerState} className="btn-boutique-outline bg-white/50 backdrop-blur-sm">
+                        <Link to={sellerLink} state={sellerState} className="btn-boutique-outline !px-12 !py-4.5 bg-white/50 backdrop-blur-sm transition-transform hover:scale-105">
                             Partner With Us
                         </Link>
                     </div>
@@ -211,8 +209,8 @@ const Home = () => {
                 <div className="premium-container">
                     <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
                         <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                            <span className="text-accent text-[11px] font-black uppercase tracking-[0.4em] mb-4">Core Directory</span>
-                            <h2 className="text-3xl md:text-4xl font-black text-primary tracking-tighter">Marketplace Categorization</h2>
+                            <span className="premium-subheading mb-4">Core Directory</span>
+                            <h2 className="text-3xl md:text-5xl font-black text-primary tracking-tighter">Marketplace Categorization</h2>
                         </div>
                         <Link to="/categories" className="btn-boutique-outline flex items-center gap-2 group">
                             See All Categories <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -269,8 +267,8 @@ const Home = () => {
                 <div className="premium-container">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-8">
                         <div className="space-y-4">
-                            <span className="text-accent text-[11px] font-black uppercase tracking-[0.4em]">Curated Selection</span>
-                            <h2 className="text-3xl md:text-4xl font-black text-primary tracking-tighter">Marketplace Spotlights</h2>
+                            <span className="premium-subheading">Curated Selection</span>
+                            <h2 className="text-3xl md:text-5xl font-black text-primary tracking-tighter">Marketplace Spotlights</h2>
                         </div>
                         <Link to="/products" className="btn-boutique-outline bg-white border-gray-200">
                             Explore All Products
@@ -298,8 +296,8 @@ const Home = () => {
                 <section className="section-spacing bg-white">
                     <div className="premium-container">
                         <div className="flex flex-col items-center text-center mb-16 px-2">
-                            <span className="text-accent text-[11px] font-black uppercase tracking-[0.4em] mb-4">Limited Availability</span>
-                            <h2 className="text-3xl md:text-5xl font-black text-primary tracking-tighter">Current Exclusive Offers</h2>
+                            <span className="premium-subheading mb-4">Limited Availability</span>
+                            <h2 className="text-3xl md:text-5xl font-black text-primary tracking-tighter">Exclusive Offers</h2>
                             <p className="text-primary/40 text-sm md:text-base font-medium max-w-xl mt-6">
                                 Claim verified vouchers and premium discounts from our marketplace partners.
                             </p>
@@ -341,45 +339,45 @@ const Home = () => {
             {/* ─── Partner CTA (Executive) ─── */}
             <section className="section-spacing">
                 <div className="premium-container">
-                    <div className="bg-primary rounded-[3rem] overflow-hidden relative shadow-2xl shadow-primary/20 min-h-[400px] flex items-center">
+                    <div className="bg-primary rounded-[3rem] overflow-hidden relative shadow-2xl shadow-primary/20 min-h-[300px] flex items-center border border-white/5">
                         {/* Background Detail */}
-                        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-accent/50 to-transparent blur-3xl" />
+                        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-accent/50 to-transparent blur-3xl" />
 
-                        <div className="relative z-10 w-full px-12 md:px-24 py-8 grid lg:grid-cols-2 gap-12 items-center">
-                            <div className="space-y-6">
-                                <div className="inline-flex items-center gap-3 text-white">
-                                    <Store size={22} className="text-accent" />
+                        <div className="relative z-10 w-full px-8 md:px-16 py-10 grid lg:grid-cols-2 gap-10 items-center">
+                            <div className="space-y-5">
+                                <div className="inline-flex items-center gap-2.5 text-white">
+                                    <Store size={18} className="text-accent" />
                                     <span className="text-[11px] font-black uppercase tracking-[0.4em] text-accent">Vendor Partnership</span>
                                 </div>
 
-                                <h2 className="text-3xl md:text-5xl font-black text-white leading-tight tracking-tighter">
+                                <h2 className="text-2xl md:text-4xl font-black text-white leading-[1.1] tracking-tighter">
                                     Become a Merchant of <br />
-                                    <span className="text-accent underline decoration-white/10 underline-offset-8">Distinction.</span>
+                                    <span className="text-accent italic font-serif font-normal">Distinction.</span>
                                 </h2>
 
-                                <p className="text-lg text-white/50 leading-relaxed font-medium max-w-xl">
-                                    We provide the industrial-scale infrastructure. You provide the exceptional craft. Apply today to scale your business across the multi-vendor ecosystem.
+                                <p className="text-base text-white/40 leading-relaxed font-medium max-w-lg">
+                                    We provide the industrial-scale infrastructure. You provide the exceptional craft. Apply today.
                                 </p>
 
-                                <div className="flex flex-wrap items-center gap-6">
-                                    <Link to={sellerLink} state={sellerState} className="btn-boutique-secondary">
+                                <div className="flex flex-wrap items-center gap-5">
+                                    <Link to={sellerLink} state={sellerState} className="btn-boutique-secondary !px-8 !py-3.5">
                                         Establish Merchant Account
                                     </Link>
-                                    <span className="text-xs font-bold text-white/20 uppercase tracking-widest">
-                                        15-Min Application Process
+                                    <span className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">
+                                        Verified Merchants Only
                                     </span>
                                 </div>
                             </div>
 
-                            <div className="hidden lg:flex flex-col gap-6">
+                            <div className="hidden lg:grid grid-cols-1 gap-4">
                                 {[
-                                    { title: 'Logistics Network', desc: 'Pan-India shipping infrastructure built-in.' },
-                                    { title: 'Global Reach', desc: 'Secure payments with Stripe integration.' },
-                                    { title: 'Brand Visibility', desc: 'Curated catalogs with high-end visibility.' },
+                                    { title: 'Logistics Network', desc: 'Pan-India shipping infrastructure.' },
+                                    { title: 'Global Reach', desc: 'Secure payments via Stripe.' },
+                                    { title: 'Brand Visibility', desc: 'Curated high-end exposure.' },
                                 ].map((benefit, i) => (
-                                    <div key={i} className="bg-white/5 backdrop-blur-md p-8 rounded-2xl border border-white/10 transition-transform hover:scale-105 duration-300">
-                                        <h4 className="text-white font-black text-lg mb-2">{benefit.title}</h4>
-                                        <p className="text-white/40 text-sm font-medium">{benefit.desc}</p>
+                                    <div key={i} className="bg-white/5 p-5 rounded-2xl border border-white/10 transition-all hover:bg-white/10 duration-300">
+                                        <h4 className="text-white font-black text-sm mb-1">{benefit.title}</h4>
+                                        <p className="text-white/30 text-[11px] font-medium leading-tight">{benefit.desc}</p>
                                     </div>
                                 ))}
                             </div>

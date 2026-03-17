@@ -15,7 +15,8 @@ import {
     Bell,
     User,
     Package,
-    GitPullRequest
+    GitPullRequest,
+    BarChart2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
@@ -45,6 +46,7 @@ const MerchantLayout = ({ children }) => {
         { name: 'Products', icon: Box, path: '/merchant/products' },
         { name: 'Inventory', icon: Package, path: '/merchant/inventory' },
         { name: 'Orders', icon: ShoppingCart, path: '/merchant/orders' },
+        { name: 'Reports', icon: BarChart2, path: '/merchant/reports' },
         { name: 'Wallet', icon: Wallet, path: '/merchant/wallet' },
         { name: 'Requests', icon: GitPullRequest, path: '/merchant/requests' },
         { name: 'Reviews', icon: MessageSquare, path: '/merchant/reviews' },

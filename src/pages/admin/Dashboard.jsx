@@ -30,11 +30,11 @@ const StatCard = ({ title, value, change, icon: Icon, trend, className }) => (
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{title}</p>
                 <h3 className="text-3xl font-black mt-2 text-primary">{value}</h3>
             </div>
-            <div className={`p-3 rounded-2xl shadow-sm ${className?.includes('#c19a6b') ? 'bg-[#c19a6b15] text-[#c19a6b]' :
-                className?.includes('#9f8170') ? 'bg-[#9f817015] text-[#9f8170]' :
-                    className?.includes('#cb997e') ? 'bg-[#cb997e15] text-[#cb997e]' :
-                        className?.includes('#8a7d6b') ? 'bg-[#8a7d6b15] text-[#8a7d6b]' :
-                            'bg-[#e3dac9] text-[#8a7d6b]'
+            <div className={`p-3 rounded-2xl shadow-sm ${className?.includes('#24b47e') ? 'bg-[#24b47e15] text-[#24b47e]' :
+                className?.includes('#3b82f6') ? 'bg-[#3b82f615] text-[#3b82f6]' :
+                    className?.includes('#6366f1') ? 'bg-[#6366f115] text-[#6366f1]' :
+                        className?.includes('#a855f7') ? 'bg-[#a855f715] text-[#a855f7]' :
+                            'bg-gray-100 text-gray-500'
                 }`}>
                 <Icon size={24} />
             </div>
@@ -130,7 +130,7 @@ const AdminDashboard = () => {
                     change="+12.5%"
                     trend="up"
                     icon={TrendingUp}
-                    className="border-l-4 border-[#c19a6b]"
+                    className="border-l-4 border-[#24b47e]"
                 />
                 <StatCard
                     title="Platform Commission"
@@ -138,7 +138,7 @@ const AdminDashboard = () => {
                     change="+8.2%"
                     trend="up"
                     icon={ShoppingCart}
-                    className="border-l-4 border-[#9f8170]"
+                    className="border-l-4 border-[#3b82f6]"
                 />
                 <StatCard
                     title="Inventory Approvals"
@@ -146,7 +146,7 @@ const AdminDashboard = () => {
                     change="-2.4%"
                     trend="down"
                     icon={Package}
-                    className="border-l-4 border-[#cb997e]"
+                    className="border-l-4 border-[#6366f1]"
                 />
                 <StatCard
                     title="Merchant Approvals"
@@ -154,7 +154,7 @@ const AdminDashboard = () => {
                     change="+14%"
                     trend="up"
                     icon={Users}
-                    className="border-l-4 border-[#8a7d6b]"
+                    className="border-l-4 border-[#a855f7]"
                 />
             </div>
 
@@ -178,8 +178,8 @@ const AdminDashboard = () => {
                             label="Platform Earnings"
                             value={fmt(walletData.platform?.totalCommissions)}
                             sub="Total commission collected"
-                            color="#c19a6b"
-                            bg="#c19a6b15"
+                            color="#24b47e"
+                            bg="#24b47e15"
                         />
                         {/* Customer Wallets */}
                         <WalletCard
@@ -230,7 +230,7 @@ const AdminDashboard = () => {
                         <h3 className="font-bold text-lg text-primary uppercase tracking-tight">Sales Allocation</h3>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-[#c19a6b]"></div>
+                                <div className="w-3 h-3 rounded-full bg-[#24b47e]"></div>
                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Revenue</span>
                             </div>
                         </div>
@@ -240,8 +240,8 @@ const AdminDashboard = () => {
                             <AreaChart data={salesData}>
                                 <defs>
                                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#c19a6b" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#c19a6b" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="#24b47e" stopOpacity={0.2} />
+                                        <stop offset="95%" stopColor="#24b47e" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -268,7 +268,7 @@ const AdminDashboard = () => {
                                 <Area
                                     type="monotone"
                                     dataKey="revenue"
-                                    stroke="#c19a6b"
+                                    stroke="#24b47e"
                                     strokeWidth={4}
                                     fillOpacity={1}
                                     fill="url(#colorRevenue)"
@@ -284,9 +284,9 @@ const AdminDashboard = () => {
                         {dashboardData?.recent_activity?.length > 0 ? (
                             dashboardData.recent_activity.map((log) => (
                                 <div key={log.id} className="flex items-start gap-4">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${log.severity === 'HIGH' ? 'bg-[#cb997e15] text-[#cb997e]' :
-                                        log.severity === 'MEDIUM' ? 'bg-[#c19a6b15] text-[#c19a6b]' :
-                                            'bg-[#e3dac9] text-[#8a7d6b]'
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${log.severity === 'HIGH' ? 'bg-red-50 text-red-500' :
+                                        log.severity === 'MEDIUM' ? 'bg-amber-50 text-amber-500' :
+                                            'bg-blue-50 text-blue-500'
                                         }`}>
                                         <Users size={16} />
                                     </div>

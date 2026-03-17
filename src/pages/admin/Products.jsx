@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
     CheckCircle,
     XCircle,
@@ -15,7 +16,9 @@ import {
     RefreshCw,
     MessageSquare,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    X,
+    Store
 } from 'lucide-react';
 import adminApi from '../../api/admin';
 import Button from '../../components/ui/Button';
@@ -37,23 +40,33 @@ const StatusBadge = ({ status }) => {
 };
 
 const AdminProducts = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const merchantId = searchParams.get('merchant_id');
+    
     const [products, setProducts] = useState([]);
     const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10 });
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState(''); // Use empty string for ALL as per API
+    const [statusFilter, setStatusFilter] = useState('');
+    const [merchantName, setMerchantName] = useState('');
 
     const fetchProducts = async (page = 1) => {
         setLoading(true);
         try {
             const response = await adminApi.getAdminProducts({
                 status: statusFilter,
+                merchant_id: merchantId,
                 page,
                 limit: meta.limit
             });
             setProducts(response.data || []);
             setMeta(response.meta);
+            
+            if (merchantId && !merchantName) {
+                const merchantRes = await adminApi.getMerchantById(merchantId);
+                setMerchantName(merchantRes.data?.store_name || 'Selected Merchant');
+            }
         } catch (error) {
             console.error('Failed to fetch products:', error);
             toast.error('Sync error: Catalog retrieval failed');
@@ -64,7 +77,14 @@ const AdminProducts = () => {
 
     useEffect(() => {
         fetchProducts(1);
-    }, [statusFilter]);
+    }, [statusFilter, merchantId]);
+
+    const clearMerchantFilter = () => {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('merchant_id');
+        setSearchParams(newParams);
+        setMerchantName('');
+    };
 
     const handleReview = async (id, action) => {
         let reason = '';
@@ -171,6 +191,28 @@ const AdminProducts = () => {
                     ))}
                 </div>
             </div>
+
+            {/* Active Merchant Filter Indicator */}
+            {merchantId && (
+                <div className="flex items-center gap-3 animate-in slide-in-from-left-4 duration-500">
+                    <div className="px-4 py-2 bg-accent/5 border border-accent/10 rounded-xl flex items-center gap-3">
+                        <div className="w-8 h-8 bg-accent text-white rounded-lg flex items-center justify-center shadow-lg shadow-accent/20">
+                            <Store size={14} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Filtering by Merchant</p>
+                            <p className="text-sm font-black text-primary italic tracking-tight">{merchantName || 'Loading Merchant...'}</p>
+                        </div>
+                        <button 
+                            onClick={clearMerchantFilter}
+                            className="ml-2 p-1.5 hover:bg-accent/10 text-accent rounded-lg transition-all"
+                            title="Clear Merchant Filter"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Catalog Grid */}
             <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl overflow-hidden">

@@ -67,13 +67,16 @@ export const authSchemas = {
 
         password: z
             .string()
-            .min(8, "Password must be at least 8 characters")
-            .max(100, "Password is too long")
-            .regex(/[A-Z]/, "Include at least one uppercase letter")
-            .regex(/[a-z]/, "Include at least one lowercase letter")
-            .regex(/[0-9]/, "Include at least one number")
-            .regex(/[^A-Za-z0-0]/, "Include at least one special character")
-            .optional(),
+            .min(1, "Password is required")
+            .pipe(
+                z.string()
+                    .min(8, "Password must be at least 8 characters")
+                    .max(100, "Password is too long")
+                    .refine(
+                        (val) => /[A-Z]/.test(val) && /[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val),
+                        "Password must contain at least one uppercase letter, one number, and one special character"
+                    )
+            ),
 
         auth_provider: z.enum(["PASSWORD", "GOOGLE", "OTP"]).default("PASSWORD"),
     }).strict().superRefine((data, ctx) => {
@@ -116,13 +119,18 @@ export const authSchemas = {
 
     // Password Reset
     resetPassword: z.object({
-        token: z.string().min(1, "Token is required"),
         password: z
             .string()
-            .min(8, "Password must be at least 8 characters")
-            .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-            .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-            .regex(/[0-9]/, "Password must contain at least one number")
-            .regex(/[^A-Za-z0-0]/, "Password must contain at least one special character"),
+            .min(1, "Password is required")
+            .pipe(z.string()
+                .min(8, "Password must be at least 8 characters")
+                .refine(
+                    (val) => /[A-Z]/.test(val) && /[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val),
+                    "At least 1 uppercase, 1 number, and 1 special character required"
+                )),
+        confirmPassword: z.string().min(1, "Please confirm your password"),
+    }).refine((data) => data.password === data.confirmPassword, {
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
     }),
 };

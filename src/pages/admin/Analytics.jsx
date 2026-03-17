@@ -18,16 +18,7 @@ import { Download, Filter, Calendar, TrendingUp } from 'lucide-react';
 import adminApi from '../../api/admin';
 import Button from '../../components/ui/Button';
 
-const COLORS = [
-    '#c19a6b', // Sand
-    '#9f8170', // Umber
-    '#cb997e', // Earthy Rose
-    '#8a7d6b', // Taupe
-    '#e3dac9', // Vanilla
-    '#6b705c', // Olive
-    '#a5a58d', // Sage Matte
-    '#b7b7a4'  // Stone
-];
+const COLORS = ['#24b47e', '#3b82f6', '#6366f1', '#a855f7', '#ec4899'];
 
 const AdminAnalytics = () => {
     const [salesTrend, setSalesTrend] = useState([]);
@@ -124,7 +115,7 @@ const AdminAnalytics = () => {
                                     name.toUpperCase()
                                 ]}
                             />
-                            <Bar dataKey="revenue" fill="#c19a6b" radius={[6, 6, 0, 0]} barSize={26} name="revenue" />
+                            <Bar dataKey="revenue" fill="#24b47e" radius={[6, 6, 0, 0]} barSize={26} name="revenue" />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -190,7 +181,7 @@ const AdminAnalytics = () => {
                                 />
                                 <Bar
                                     dataKey="revenue"
-                                    fill="#8a7d6b"
+                                    fill="#6366f1"
                                     radius={[0, 10, 10, 0]}
                                     barSize={20}
                                 />
@@ -227,7 +218,7 @@ const AdminAnalytics = () => {
                                     <div className="flex items-center justify-end gap-2">
                                         <div className="w-24 bg-gray-100 h-1.5 rounded-full overflow-hidden">
                                             <div
-                                                className="bg-[#c19a6b] h-full rounded-full"
+                                                className="bg-[#24b47e] h-full rounded-full"
                                                 style={{ width: `${(product.revenue / topProducts[0].revenue) * 100}%` }}
                                             ></div>
                                         </div>

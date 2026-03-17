@@ -8,8 +8,10 @@ import {
     ArrowDownRight,
     Search,
     Filter,
-    MoreHorizontal
+    MoreHorizontal,
+    BarChart2
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
     ResponsiveContainer,
     AreaChart,
@@ -101,11 +103,12 @@ const StatCard = ({ title, value, change, icon: Icon, trend, className }) => (
 );
 
 const MerchantDashboard = () => {
+    const navigate = useNavigate();
     const [stats, setStats] = useState({
         total_sales: 0,
         total_orders: 0,
         active_products: 0,
-        wallet_balance: 0
+        wallet_balance: 0,
     });
     const [recentOrders, setRecentOrders] = useState([]);
     const [earningsData, setEarningsData] = useState([]);
@@ -185,19 +188,16 @@ const MerchantDashboard = () => {
                     <p className="text-gray-500 font-medium mt-1">Real-time performance metrics for your digital storefront.</p>
                 </div>
                 <div className="flex gap-3">
-                    <button className="h-12 px-6 rounded-xl border-2 border-primary border-dashed text-xs font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all duration-300">
-                        Adjust View
-                    </button>
                     <button
-                        onClick={() => toast.success('Report generation started.')}
-                        className="btn-boutique-primary h-12 px-8 shadow-xl shadow-primary/20"
+                        onClick={() => navigate('/merchant/reports')}
+                        className="btn-boutique-primary h-12 px-8 shadow-xl shadow-primary/20 flex items-center gap-2"
                     >
-                        <TrendingUp size={18} /> EXPORT REPORT
+                        <BarChart2 size={18} /> FINANCIAL REPORTS
                     </button>
                 </div>
             </div>
 
-            {/* Stats Grid */}
+            {/* Main Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                     title="Gross Revenue"
@@ -214,16 +214,16 @@ const MerchantDashboard = () => {
                     className="border-l-4 border-l-[#9f8170]"
                 />
                 <StatCard
-                    title="Market SKU's"
+                    title="Active Market SKU's"
                     value={stats.active_products}
                     icon={Package}
                     className="border-l-4 border-l-[#cb997e]"
                 />
                 <StatCard
-                    title="Settled Capital"
+                    title="Available Capital"
                     value={stats.wallet_balance}
                     icon={Wallet}
-                    className="border-l-4 border-l-[#8a7d6b]"
+                    className="border-l-4 border-l-[#24b47e]"
                 />
             </div>
 

@@ -131,6 +131,15 @@ const OrderSuccess = () => {
                                 <span>Shipping</span>
                                 <span className="text-emerald-500 uppercase text-[10px]">Free</span>
                             </div>
+                            {(order.pricing?.tax > 0 || order.summary?.tax > 0) && (
+                                <div className="flex items-center justify-between text-xs font-bold text-gray-500">
+                                    <span className="flex flex-col">
+                                        <span>Tax (GST 18%)</span>
+                                        <span className="text-[9px] font-normal text-gray-400">Included in total</span>
+                                    </span>
+                                    <span>₹{(order.pricing?.tax || order.summary?.tax || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                            )}
                             {(order.pricing?.discount > 0 || order.summary?.discount > 0) && (
                                 <div className="flex items-center justify-between text-xs font-bold text-emerald-500">
                                     <span className="flex items-center gap-2">

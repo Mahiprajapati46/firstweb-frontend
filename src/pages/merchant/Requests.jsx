@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import merchantApi from '../../api/merchant';
 import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import { merchantSchemas } from '../../validations/merchant.schema';
 import { toast } from 'react-hot-toast';
 import RequestDetailsModal from '../../components/merchant/RequestDetailsModal';
 
@@ -32,12 +34,30 @@ const Requests = () => {
     const [showModal, setShowModal] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         parent_category_id: ''
     });
+
+    const handleBlur = (name, value) => {
+        const data = { ...formData, [name]: value };
+        const result = merchantSchemas.categoryRequest.safeParse(data);
+        if (!result.success) {
+            const fieldIssue = result.error.issues.find(i => i.path[0] === name);
+            if (fieldIssue) {
+                setFieldErrors(prev => ({ ...prev, [name]: fieldIssue.message }));
+                return;
+            }
+        }
+        setFieldErrors(prev => {
+            const n = { ...prev };
+            delete n[name];
+            return n;
+        });
+    };
 
     useEffect(() => {
         if (location.state?.type === 'CHANGE' || location.state?.productId) {
@@ -79,11 +99,24 @@ const Requests = () => {
 
     const handleCategorySubmit = async (e) => {
         e.preventDefault();
+        setFieldErrors({});
+
+        const result = merchantSchemas.categoryRequest.safeParse(formData);
+        if (!result.success) {
+            const errors = {};
+            result.error.issues.forEach(issue => {
+                errors[issue.path[0]] = issue.message;
+            });
+            setFieldErrors(errors);
+            return;
+        }
+
         try {
             await merchantApi.submitCategoryRequest(formData);
             toast.success('Category request submitted for review');
             setShowModal(false);
             setFormData({ name: '', description: '', parent_category_id: '' });
+            setFieldErrors({});
             fetchData();
         } catch (error) {
             toast.error(error.message || 'Submission failed');
@@ -233,13 +266,11 @@ const Requests = () => {
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-3">
                                             <h3 className="font-black text-slate-900 tracking-tight text-lg font-outfit uppercase">
-                                                {activeTab === 'CATEGORY' ? req.name : `${req.entity_type} Change`}
+                                                {req.name || `${req.entity_type || 'Change'} Request`}
                                             </h3>
-                                            {activeTab === 'CHANGE' && (
-                                                <span className="text-[10px] font-black bg-slate-900 text-white px-2 py-0.5 rounded-md tracking-tighter shadow-sm">
-                                                    #{req._id.slice(-6).toUpperCase()}
-                                                </span>
-                                            )}
+                                            <span className="text-[10px] font-black bg-slate-900 text-white px-2 py-0.5 rounded-md tracking-tighter shadow-sm">
+                                                #{req._id.slice(-6).toUpperCase()}
+                                            </span>
                                         </div>
 
                                         <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
@@ -250,7 +281,7 @@ const Requests = () => {
                                                 </span>
                                             </div>
 
-                                            {activeTab === 'CATEGORY' ? (
+                                            {req.name && req.slug ? (
                                                 <div className="flex items-center gap-1.5 text-slate-400">
                                                     <Hash size={12} />
                                                     <span className="text-[10px] font-bold uppercase tracking-wider italic">
@@ -259,8 +290,11 @@ const Requests = () => {
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center gap-2">
+                                                    <span className="text-[8px] bg-primary/5 text-primary px-2 py-0.5 rounded-full border border-primary/10 font-black uppercase tracking-widest">
+                                                        {req.entity_type || 'PRODUCT'}
+                                                    </span>
                                                     {Object.keys(req.requested_changes || {}).map(field => (
-                                                        <span key={field} className="text-[8px] bg-primary/5 text-primary px-2 py-0.5 rounded-full border border-primary/10 font-black uppercase tracking-widest">{field}</span>
+                                                        <span key={field} className="text-[8px] bg-slate-50 text-slate-400 px-2 py-0.5 rounded-full border border-slate-100 font-bold uppercase tracking-widest">{field}</span>
                                                     ))}
                                                 </div>
                                             )}
@@ -302,8 +336,8 @@ const Requests = () => {
                                     <Tag size={24} />
                                 </div>
                                 <div className="space-y-1">
-                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">New Category</h2>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Send a request for a new category</p>
+                                    <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none font-outfit">New Category</h2>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1 font-inter">Propose a new category for the store</p>
                                 </div>
                             </div>
                             <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white rounded-xl border border-transparent hover:border-slate-200 transition-all text-slate-300 hover:text-slate-900">
@@ -312,29 +346,32 @@ const Requests = () => {
                         </div>
 
                         <form onSubmit={handleCategorySubmit} className="flex-1 overflow-y-auto custom-scrollbar">
-                            <div className="p-8 space-y-6">
+                            <div className="p-8 space-y-8">
                                 {/* Name Input */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Category Name</label>
-                                    <div className="relative group">
-                                        <input
-                                            type="text"
-                                            required
-                                            placeholder="e.g. Sustainable Goods"
-                                            className="w-full px-12 py-5 bg-slate-50 border border-slate-100 rounded-3xl text-sm font-black focus:ring-8 focus:ring-primary/5 focus:border-primary/20 transition-all outline-none"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        />
-                                        <Edit className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={18} />
-                                    </div>
-                                </div>
+                                <Input
+                                    label="Category Name"
+                                    required
+                                    placeholder="e.g. Sustainable Goods"
+                                    icon={<Tag size={18} className="text-gray-400" />}
+                                    value={formData.name}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, name: e.target.value });
+                                        if (fieldErrors.name) setFieldErrors(prev => {
+                                            const n = { ...prev }; delete n.name; return n;
+                                        });
+                                    }}
+                                    onBlur={(e) => handleBlur('name', e.target.value)}
+                                    error={fieldErrors.name}
+                                />
 
                                 {/* Parent Select */}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Parent Category (Optional)</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1 flex items-center gap-1.5 font-inter">
+                                        Parent Category <span className="text-slate-300 font-medium normal-case tracking-normal">(Optional)</span>
+                                    </label>
                                     <div className="relative">
                                         <select
-                                            className="w-full px-12 py-5 bg-slate-50 border border-slate-100 rounded-3xl text-sm font-black focus:ring-8 focus:ring-primary/5 focus:border-primary/20 appearance-none transition-all outline-none cursor-pointer"
+                                            className="w-full px-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-8 focus:ring-primary/5 focus:border-primary/20 appearance-none transition-all outline-none cursor-pointer"
                                             value={formData.parent_category_id}
                                             onChange={(e) => setFormData({ ...formData, parent_category_id: e.target.value })}
                                         >
@@ -349,28 +386,33 @@ const Requests = () => {
                                 </div>
 
                                 {/* Description */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Reason for New Category</label>
-                                    <div className="relative group">
-                                        <textarea
-                                            placeholder="Why should this be added? Provide context..."
-                                            className="w-full px-12 py-5 bg-slate-50 border border-slate-100 rounded-3xl text-sm font-bold focus:ring-8 focus:ring-primary/5 focus:border-primary/20 transition-all min-h-[120px] outline-none resize-none"
-                                            value={formData.description}
-                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        />
-                                        <MessageSquare className="absolute left-4 top-5 text-slate-300 group-focus-within:text-primary transition-colors" size={18} />
-                                    </div>
-                                </div>
+                                <Input
+                                    label="Reason for New Category"
+                                    required
+                                    placeholder="Why should this be added? Provide context..."
+                                    icon={<MessageSquare size={18} className="text-gray-400" />}
+                                    value={formData.description}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, description: e.target.value });
+                                        if (fieldErrors.description) setFieldErrors(prev => {
+                                            const n = { ...prev }; delete n.description; return n;
+                                        });
+                                    }}
+                                    onBlur={(e) => handleBlur('description', e.target.value)}
+                                    error={fieldErrors.description}
+                                    multiline
+                                    rows={4}
+                                />
                             </div>
 
                             {/* Submit Area */}
                             <div className="p-8 bg-slate-50/30 border-t border-slate-100 mt-4 flex gap-4">
                                 <Button
                                     type="submit"
-                                    className="flex-1 py-5 rounded-3xl font-black bg-slate-900 border-slate-900 shadow-2xl shadow-slate-900/10 uppercase tracking-widest text-xs flex items-center justify-center gap-2 group"
+                                    className="flex-1 py-5 bg-primary hover:bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2"
                                 >
                                     Send Request
-                                    <ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                    <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                 </Button>
                                 <Button
                                     type="button"
@@ -391,7 +433,8 @@ const Requests = () => {
                 isOpen={!!selectedRequest}
                 onClose={() => setSelectedRequest(null)}
                 request={selectedRequest}
-                type={activeTab} // Important: tell the modal which type it is
+                type={activeTab}
+                categories={categories}
             />
         </div>
     );

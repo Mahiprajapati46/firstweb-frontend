@@ -29,6 +29,15 @@ const merchantApi = {
         }
     },
 
+    updateProfile: async (data) => {
+        try {
+            const response = await api.patch('/merchants/profile', data);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
     // Dashboard Stats
     getStats: async () => {
         try {
@@ -226,6 +235,47 @@ const merchantApi = {
         try {
             const response = await api.post('/merchants/wallet/simulate-onboarding-success');
             return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    // Reports
+    getGstSummary: async (params) => {
+        try {
+            const response = await api.get('/merchants/reports/gst-summary', { params });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    getSalesSummary: async (params) => {
+        try {
+            const response = await api.get('/merchants/reports/sales-summary', { params });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    exportGstReport: async (params) => {
+        try {
+            const response = await api.get('/merchants/reports/gst-export', {
+                params,
+                responseType: 'blob'
+            });
+
+            // Create a link and trigger download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `GST_Report_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            return { success: true };
         } catch (error) {
             throw error.response?.data || error;
         }

@@ -137,19 +137,29 @@ const Cart = () => {
     };
 
     const calculateSelectedTotal = () => {
-        if (!cart || !cart.items) return { subtotal: 0, total: 0 };
+        if (!cart || !cart.items) return { subtotal: 0, tax: 0, total: 0 };
         const selected = cart.items.filter(item =>
             selectedItems.includes(item.variant_id?._id || item._id)
         );
         const subtotal = selected.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-        // 🆕 Apply discount locally for display (re-verified in checkout)
-        let total = subtotal;
+        // Calculate tax based on variant snapshots
+        const tax = selected.reduce((sum, item) => {
+            const itemTax = (item.price * item.quantity) * ((item.gst_rate_snapshot || 18) / 100);
+            return sum + itemTax;
+        }, 0);
+
+        let total = subtotal + tax;
         if (appliedCoupon) {
-            total = Math.max(0, subtotal - appliedCoupon.discount);
+            // Discounts usually apply to the base price or total, here we subtract from total for simplicity
+            total = Math.max(0, total - appliedCoupon.discount);
         }
 
-        return { subtotal, total: Math.round(total * 100) / 100 };
+        return {
+            subtotal: Math.round(subtotal * 100) / 100,
+            tax: Math.round(tax * 100) / 100,
+            total: Math.round(total * 100) / 100
+        };
     };
 
     const handleUpdateQuantity = async (itemId, currentQty, delta) => {
@@ -410,8 +420,12 @@ const Cart = () => {
 
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-500">Total MRP</span>
+                                        <span className="text-gray-500">Total MRP (Excl. Tax)</span>
                                         <span className="font-bold text-gray-900">₹{calculateSelectedTotal().subtotal}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-500">Estimated Tax</span>
+                                        <span className="font-bold text-gray-900">₹{calculateSelectedTotal().tax}</span>
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-gray-500">Coupon Discount</span>

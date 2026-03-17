@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Search, X, Check, ChevronDown } from 'lucide-react';
 
 const SearchableSelect = ({
@@ -12,23 +13,59 @@ const SearchableSelect = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [dropdownStyle, setDropdownStyle] = useState({});
     const containerRef = useRef(null);
+    const triggerRef = useRef(null);
+    const dropdownRef = useRef(null);
 
     // Filter options based on search term
     const filteredOptions = options.filter(option =>
         option.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Close dropdown when clicking outside
+    // Compute dropdown position from trigger's bounding rect
+    const updateDropdownPosition = () => {
+        if (!triggerRef.current) return;
+        const rect = triggerRef.current.getBoundingClientRect();
+        setDropdownStyle({
+            position: 'fixed',
+            top: rect.bottom + 8, // 8px margin below the trigger
+            left: rect.left,
+            width: rect.width,
+            zIndex: 99999, // Ensure it's above other content
+        });
+    };
+
+    const handleOpen = () => {
+        if (disabled) return;
+        updateDropdownPosition();
+        setIsOpen(prev => !prev);
+    };
+
+    // Close dropdown when clicking outside (check both trigger and portaled dropdown)
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (containerRef.current && !containerRef.current.contains(event.target)) {
+            const inTrigger = containerRef.current && containerRef.current.contains(event.target);
+            const inDropdown = dropdownRef.current && dropdownRef.current.contains(event.target);
+            if (!inTrigger && !inDropdown) {
                 setIsOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Recalculate position on scroll/resize when dropdown is open
+    useEffect(() => {
+        if (!isOpen) return;
+        const recalc = () => updateDropdownPosition();
+        window.addEventListener('scroll', recalc, true); // Use capture phase for scroll
+        window.addEventListener('resize', recalc);
+        return () => {
+            window.removeEventListener('scroll', recalc, true);
+            window.removeEventListener('resize', recalc);
+        };
+    }, [isOpen]); // Re-run when isOpen changes
 
     return (
         <div className="space-y-3" ref={containerRef}>
@@ -39,7 +76,8 @@ const SearchableSelect = ({
             <div className={`relative ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}>
                 {/* Trigger / Search Input */}
                 <div
-                    onClick={() => !disabled && setIsOpen(!isOpen)}
+                    ref={triggerRef}
+                    onClick={handleOpen}
                     className={`flex flex-wrap items-center gap-2 w-full px-6 py-4 bg-gray-50/50 border rounded-2xl transition-all min-h-[60px] cursor-text ${isOpen ? 'border-primary ring-4 ring-primary/5' : 'border-gray-100 hover:border-primary/20'
                         }`}
                 >
@@ -75,7 +113,12 @@ const SearchableSelect = ({
                         className="flex-1 bg-transparent border-none outline-none text-sm font-black text-primary placeholder:text-gray-300 min-w-[120px]"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        onFocus={() => !disabled && setIsOpen(true)}
+                        onFocus={() => {
+                            if (!disabled) {
+                                updateDropdownPosition(); // Update position when input is focused
+                                setIsOpen(true);
+                            }
+                        }}
                         disabled={disabled}
                     />
 
@@ -85,9 +128,13 @@ const SearchableSelect = ({
                     />
                 </div>
 
-                {/* Dropdown Menu */}
-                {isOpen && !disabled && (
-                    <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-[2rem] shadow-2xl shadow-primary/10 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Dropdown — portaled to body to escape all overflow clipping */}
+                {isOpen && !disabled && ReactDOM.createPortal(
+                    <div
+                        ref={dropdownRef}
+                        style={dropdownStyle}
+                        className="bg-white border border-gray-100 rounded-[2rem] shadow-2xl shadow-primary/10 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+                    >
                         <div className="max-h-[280px] overflow-y-auto p-2 boutique-scrollbar">
                             {filteredOptions.length > 0 ? (
                                 filteredOptions.map((option) => {
@@ -97,16 +144,12 @@ const SearchableSelect = ({
                                             key={option._id}
                                             type="button"
                                             onClick={() => {
-                                                if (isSelected) {
-                                                    onRemove(option._id);
-                                                } else {
-                                                    onSelect(option._id);
-                                                }
+                                                isSelected ? onRemove(option._id) : onSelect(option._id);
                                                 setSearchTerm(''); // Clear search on select
                                             }}
                                             className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl text-left transition-all group ${isSelected
-                                                    ? 'bg-primary/5 text-primary font-black'
-                                                    : 'text-gray-500 hover:bg-gray-50 hover:text-primary font-bold'
+                                                ? 'bg-primary/5 text-primary font-black'
+                                                : 'text-gray-500 hover:bg-gray-50 hover:text-primary font-bold'
                                                 }`}
                                         >
                                             <span className="text-sm">{option.name}</span>
@@ -121,7 +164,8 @@ const SearchableSelect = ({
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
             </div>
         </div>

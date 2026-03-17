@@ -1,6 +1,8 @@
 import React from 'react';
-import { Mail, Phone, MapPin, Headphones } from 'lucide-react';
+import { Mail, Phone, MapPin, Headphones, User, AtSign, MessageSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { customerSchemas } from '../../validations/customer.schema';
+import Input from '../../components/ui/Input';
 
 const Contact = () => {
     const [formData, setFormData] = React.useState({ name: '', email: '', message: '' });
@@ -8,49 +10,45 @@ const Contact = () => {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isSubmitted, setIsSubmitted] = React.useState(false);
 
-    const validate = (data) => {
-        const newErrors = {};
-        const nameClean = data.name.trim();
-        const emailClean = data.email.trim();
-        const messageClean = data.message.trim();
+    const handleChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
 
-        if (!nameClean) newErrors.name = 'Full name is required';
-        else if (nameClean.length < 2) newErrors.name = 'Name must be at least 2 characters';
-        else if (!/^[a-zA-Z\s]+$/.test(nameClean)) newErrors.name = 'Name must contain only letters';
-
-        if (!emailClean) newErrors.email = 'Work email is required';
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClean)) newErrors.email = 'Enter a valid email address';
-
-        if (!messageClean) newErrors.message = 'Message is required';
-        else if (messageClean.length < 15) newErrors.message = 'Message must be at least 15 characters';
-
-        return newErrors;
+        // Clear error as user types
+        if (errors[field]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[field];
+                return newErrors;
+            });
+        }
     };
 
     const handleBlur = (field) => {
-        const fieldErrors = validate(formData);
-        if (fieldErrors[field]) {
-            setErrors(prev => ({ ...prev, [field]: fieldErrors[field] }));
-        } else {
-            setErrors(prev => { const e = { ...prev }; delete e[field]; return e; });
+        const result = customerSchemas.contactInquiry.safeParse(formData);
+        if (!result.success) {
+            const fieldError = result.error.issues.find(issue => issue.path[0] === field);
+            if (fieldError) {
+                setErrors(prev => ({ ...prev, [field]: fieldError.message }));
+                return;
+            }
         }
-    };
-
-    const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        // Clear error as user types valid data
-        if (errors[field]) {
-            const updated = { ...formData, [field]: value };
-            const fieldErrors = validate(updated);
-            if (!fieldErrors[field]) setErrors(prev => { const e = { ...prev }; delete e[field]; return e; });
-        }
+        setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[field];
+            return newErrors;
+        });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const validationErrors = validate(formData);
-        if (Object.keys(validationErrors).length > 0) {
-            setErrors(validationErrors);
+        const result = customerSchemas.contactInquiry.safeParse(formData);
+        if (!result.success) {
+            const newErrors = {};
+            result.error.issues.forEach(issue => {
+                newErrors[issue.path[0]] = issue.message;
+            });
+            setErrors(newErrors);
+            toast.error("Please refine your inquiry details.");
             return;
         }
         setIsSubmitting(true);
@@ -100,41 +98,45 @@ const Contact = () => {
                         <h2 className="text-xl font-bold text-gray-900">Send an Inquiry</h2>
                         <form onSubmit={handleSubmit} noValidate className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={e => handleChange('name', e.target.value)}
-                                        onBlur={() => handleBlur('name')}
-                                        className={`w-full px-6 py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-primary/5 focus:border-primary outline-none transition-all font-medium text-sm ${errors.name ? 'border-rose-400 bg-rose-50' : 'border-gray-100'}`}
-                                        placeholder="e.g. Rahul Gupta"
-                                    />
-                                    {errors.name && <p className="text-[11px] text-rose-500 font-semibold ml-1 mt-1">{errors.name}</p>}
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Work Email</label>
-                                    <input
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={e => handleChange('email', e.target.value)}
-                                        onBlur={() => handleBlur('email')}
-                                        className={`w-full px-6 py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-primary/5 focus:border-primary outline-none transition-all font-medium text-sm ${errors.email ? 'border-rose-400 bg-rose-50' : 'border-gray-100'}`}
-                                        placeholder="rahul@example.com"
-                                    />
-                                    {errors.email && <p className="text-[11px] text-rose-500 font-semibold ml-1 mt-1">{errors.email}</p>}
-                                </div>
+                                <Input
+                                    label="Full Name"
+                                    value={formData.name}
+                                    onChange={e => handleChange('name', e.target.value)}
+                                    onBlur={() => handleBlur('name')}
+                                    error={errors.name}
+                                    placeholder="e.g. Rahul Gupta"
+                                    icon={<User size={18} />}
+                                    required
+                                />
+                                <Input
+                                    label="Work Email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={e => handleChange('email', e.target.value)}
+                                    onBlur={() => handleBlur('email')}
+                                    error={errors.email}
+                                    placeholder="rahul@example.com"
+                                    icon={<AtSign size={18} />}
+                                    required
+                                />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Message</label>
-                                <textarea
-                                    value={formData.message}
-                                    onChange={e => handleChange('message', e.target.value)}
-                                    onBlur={() => handleBlur('message')}
-                                    className={`w-full px-6 py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-primary/5 focus:border-primary outline-none transition-all font-medium text-sm h-32 resize-none ${errors.message ? 'border-rose-400 bg-rose-50' : 'border-gray-100'}`}
-                                    placeholder="How can we assist your operations today?"
-                                ></textarea>
-                                {errors.message && <p className="text-[11px] text-rose-500 font-semibold ml-1 mt-1">{errors.message}</p>}
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                                    Message <span className="text-red-500 ml-1">*</span>
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute left-3 top-4 text-gray-500 pointer-events-none">
+                                        <MessageSquare size={18} />
+                                    </div>
+                                    <textarea
+                                        value={formData.message}
+                                        onChange={e => handleChange('message', e.target.value)}
+                                        onBlur={() => handleBlur('message')}
+                                        className={`w-full pl-10 pr-6 py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-primary/5 focus:border-primary outline-none transition-all font-medium text-sm h-32 resize-none ${errors.message ? 'border-red-500' : 'border-gray-200'}`}
+                                        placeholder="How can we assist your operations today?"
+                                    ></textarea>
+                                </div>
+                                {errors.message && <p className="text-xs text-red-500 mt-1">{errors.message}</p>}
                             </div>
                             <button
                                 disabled={isSubmitting}

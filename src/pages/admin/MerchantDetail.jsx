@@ -17,7 +17,8 @@ import {
     Phone,
     MapPin,
     Hash,
-    AlignLeft
+    AlignLeft,
+    Package
 } from 'lucide-react';
 import adminApi from '../../api/admin';
 import Button from '../../components/ui/Button';
@@ -130,6 +131,12 @@ const AdminMerchantDetail = () => {
                             <UserCheck size={16} /> Activate Store
                         </button>
                     )}
+                    <Link
+                        to={`/admin/products?merchant_id=${merchant._id}`}
+                        className="px-6 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-primary/10 flex items-center gap-2"
+                    >
+                        <Package size={16} /> Manage Products
+                    </Link>
                 </div>
             </div>
 

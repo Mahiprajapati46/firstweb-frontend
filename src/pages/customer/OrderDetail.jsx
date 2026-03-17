@@ -482,8 +482,8 @@ const OrderDetail = () => {
                                                 )}
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-base font-bold text-gray-900">₹{(item.price * item.quantity).toLocaleString()}</p>
-                                                <p className="text-[10px] text-gray-400 font-medium">₹{item.price.toLocaleString()} each</p>
+                                                <p className="text-base font-bold text-gray-900">₹{((item.base_price || item.price) * item.quantity).toLocaleString()}</p>
+                                                <p className="text-[10px] text-gray-400 font-medium">₹{(item.base_price || item.price).toLocaleString()} each (excl. GST)</p>
                                             </div>
                                         </div>
                                     ))
@@ -582,6 +582,41 @@ const OrderDetail = () => {
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-500">Discount</span>
                                         <span className="text-red-500 font-medium">- ₹{pricing.discount.toLocaleString()}</span>
+                                    </div>
+                                )}
+
+                                {pricing?.tax > 0 && (
+                                    <div className="pt-2 space-y-1.5 mt-1 border-t border-gray-50">
+                                        {sub_orders.some(so => so.tax_details?.cgst > 0) ? (
+                                            <>
+                                                <div className="flex justify-between text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                                    <span>Tax Breakdown</span>
+                                                </div>
+                                                <div className="flex justify-between text-xs text-gray-500">
+                                                    <span>CGST</span>
+                                                    <span>₹{sub_orders.reduce((acc, so) => acc + (so.tax_details?.cgst || 0), 0).toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between text-xs text-gray-500">
+                                                    <span>SGST</span>
+                                                    <span>₹{sub_orders.reduce((acc, so) => acc + (so.tax_details?.sgst || 0), 0).toFixed(2)}</span>
+                                                </div>
+                                            </>
+                                        ) : sub_orders.some(so => so.tax_details?.igst > 0) ? (
+                                            <>
+                                                <div className="flex justify-between text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                                    <span>Tax Breakdown</span>
+                                                </div>
+                                                <div className="flex justify-between text-xs text-gray-500">
+                                                    <span>IGST</span>
+                                                    <span>₹{sub_orders.reduce((acc, so) => acc + (so.tax_details?.igst || 0), 0).toFixed(2)}</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-500">Tax</span>
+                                                <span className="font-medium text-gray-900">₹{pricing.tax.toLocaleString()}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                                 {pricing?.amount_paid_via_wallet > 0 && (

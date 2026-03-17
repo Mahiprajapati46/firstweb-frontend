@@ -38,7 +38,7 @@ const ProductForm = () => {
         description: '',
         category_ids: [],
         variants: [
-            { price: '', stock: '', sku: '', attributes: { Size: 'Standard' }, image: null }
+            { price: '', compare_at_price: '', stock: '', sku: '', gst_rate: 18, attributes: { Size: 'Standard' }, image: null }
         ],
         attribute_config: ['Size'],
         showAdvanced: false
@@ -66,13 +66,16 @@ const ProductForm = () => {
                     ? product.variants.map(v => ({
                         _id: v._id,
                         price: v.price || '',
-                        stock: v.stock || 0,
+                        compare_at_price: v.compare_at_price || '',
+                        stock: v.stock_quantity || 0,
                         sku: v.sku || '',
+                        gst_rate: v.gst_rate || 18,
                         attributes: v.attributes || { size: 'Standard' },
                         image: v.images?.[0] || null
                     }))
                     : [{
                         price: product.pricing?.min_price || '',
+                        gst_rate: 18,
                         stock: 0,
                         sku: '',
                         attributes: { size: 'Standard' },
@@ -101,6 +104,17 @@ const ProductForm = () => {
         }
     };
 
+    const handleInputChange = (name, value) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
+    };
+
     const handleBlur = (name, value) => {
         const currentData = { ...formData };
 
@@ -110,7 +124,8 @@ const ProductForm = () => {
             if (parts[0] === 'variants') {
                 const index = parseInt(parts[1]);
                 const field = parts[2];
-                currentData.variants[index] = { ...currentData.variants[index], [field]: value };
+                const cleanValue = (field === 'price' || field === 'stock' || field === 'compare_at_price') ? (value === '' ? '' : Number(value)) : value;
+                currentData.variants[index] = { ...currentData.variants[index], [field]: cleanValue };
             } else {
                 const [parent, child] = parts;
                 currentData[parent] = { ...currentData[parent], [child]: value };
@@ -167,7 +182,7 @@ const ProductForm = () => {
             ...formData,
             variants: [
                 ...formData.variants,
-                { price: '', stock: '', sku: '', attributes: defaultAttrs, image: null }
+                { price: '', compare_at_price: '', stock: '', sku: '', attributes: defaultAttrs, image: null }
             ],
             hasMultipleVariants: true
         });
@@ -302,7 +317,13 @@ const ProductForm = () => {
         try {
             const validationData = {
                 ...formData,
-                images: previewImages.map(img => typeof img === 'string' ? img : img.url)
+                images: previewImages.map(img => typeof img === 'string' ? img : img.url),
+                variants: formData.variants.map(v => ({
+                    ...v,
+                    price: v.price === '' ? 0 : Number(v.price),
+                    compare_at_price: v.compare_at_price === '' ? undefined : Number(v.compare_at_price),
+                    stock: v.stock === '' ? 0 : Number(v.stock)
+                }))
             };
             const result = productSchemas.create.safeParse(validationData);
 
@@ -378,7 +399,7 @@ const ProductForm = () => {
                             {isEdit ? 'Manage Product' : 'Industry Catalog Entry'}
                         </h1>
                         <p className="text-gray-400 text-xs font-medium uppercase tracking-[0.2em] mt-1">
-                            {isEdit ? `Ref: ${id.slice(-8)}` : 'Create a professional high-converting product'}
+                            {isEdit ? 'Update product essence and strategy' : 'Create a professional high-converting product'}
                         </p>
                     </div>
                 </div>
@@ -386,69 +407,94 @@ const ProductForm = () => {
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 <div className="lg:col-span-2 space-y-8">
-                    {/* Card 1: Core Identity */}
-                    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 md:p-10 shadow-sm space-y-8">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-primary/5 text-primary rounded-2xl flex items-center justify-center italic font-black text-lg">01</div>
-                            <div>
-                                <h3 className="text-xl font-black text-primary tracking-tight">General Information</h3>
-                                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Foundational product details</p>
+                    {/* Card 1: Main Details */}
+                    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 md:p-10 shadow-sm space-y-10 relative overflow-hidden text-left">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-primary/5 text-primary rounded-2xl flex items-center justify-center italic font-black text-lg">01</div>
+                                <div>
+                                    <h3 className="text-xl font-black text-primary tracking-tight">Main Details</h3>
+                                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Foundational product identity</p>
+                                </div>
                             </div>
+                            {productStatus === 'APPROVED' && (
+                                <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 rounded-xl border border-amber-100 animate-in fade-in zoom-in-95 duration-500">
+                                    <Lock size={14} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Locked for Security</span>
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid gap-8">
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Product Title</label>
-                                <input
-                                    type="text"
-                                    className={`w-full px-8 py-5 bg-gray-50/50 border ${fieldErrors.title ? 'border-red-500' : 'border-gray-100'} rounded-3xl text-sm font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
-                                    placeholder="e.g. Minimalist Cotton Hoodie"
+                                <Input
+                                    label="Product Title"
+                                    required
+                                    placeholder="Enter professional product title..."
                                     value={formData.title}
-                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                    onChange={e => productStatus === 'APPROVED' ? toast.error('Standard title is locked. Use "Request Change" to propose updates.') : handleInputChange('title', e.target.value)}
                                     onBlur={e => handleBlur('title', e.target.value)}
+                                    disabled={productStatus === 'APPROVED'}
+                                    suffix={
+                                        <span className={`text-[10px] font-bold ${formData.title.length > 100 ? 'text-red-500' : 'text-gray-400'}`}>
+                                            {formData.title.length}/100
+                                        </span>
+                                    }
                                 />
-                                {fieldErrors.title && <p className="text-[10px] text-red-500 font-bold italic mt-1 ml-4 underline decoration-red-200">! {fieldErrors.title}</p>}
+                                {fieldErrors.title && <p className="text-[10px] text-red-500 font-bold mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.title}</p>}
                             </div>
 
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Composition & Narrative</label>
+                                <div className="flex justify-between items-center ml-1">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Product Description</label>
+                                    <span className={`text-[10px] font-bold ${formData.description.length < 50 ? 'text-amber-500' : formData.description.length > 2000 ? 'text-red-500' : 'text-gray-400'}`}>
+                                        {formData.description.length}/2000
+                                    </span>
+                                </div>
                                 <textarea
-                                    className={`w-full px-8 py-6 bg-gray-50/50 border ${fieldErrors.description ? 'border-red-500' : 'border-gray-100'} rounded-[2rem] text-sm font-medium text-gray-600 leading-relaxed min-h-[180px] focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
-                                    placeholder="Tell your product's story, materials, and care..."
+                                    className={`w-full px-8 py-6 bg-gray-50/50 border ${fieldErrors.description ? 'border-red-500' : 'border-gray-100'} rounded-[2rem] text-sm font-medium ${productStatus === 'APPROVED' ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 focus:ring-4 focus:ring-primary/5 focus:border-primary'} leading-relaxed min-h-[180px] transition-all`}
+                                    placeholder="Explain your product's story..."
                                     value={formData.description}
-                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                    onChange={e => productStatus === 'APPROVED' ? toast.error('Scientific description is locked. Use "Request Change" to propose updates.') : handleInputChange('description', e.target.value)}
                                     onBlur={e => handleBlur('description', e.target.value)}
+                                    readOnly={productStatus === 'APPROVED'}
                                 />
-                                {fieldErrors.description && <p className="text-[10px] text-red-500 font-bold italic mt-1 ml-4 underline decoration-red-200">! {fieldErrors.description}</p>}
+                                {fieldErrors.description && <p className="text-[10px] text-red-500 font-bold mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.description}</p>}
                             </div>
 
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Commercial Tags</label>
-                                <SearchableSelect
-                                    options={categories}
-                                    selectedValues={formData.category_ids}
-                                    onSelect={id => setFormData({ ...formData, category_ids: [...formData.category_ids, id] })}
-                                    onRemove={id => setFormData({ ...formData, category_ids: formData.category_ids.filter(v => v !== id) })}
-                                />
-                                {fieldErrors.category_ids && <p className="text-[10px] text-red-500 font-bold italic mt-1 ml-4 underline decoration-red-200">! {fieldErrors.category_ids}</p>}
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Product Categories</label>
+                                <div onClick={() => productStatus === 'APPROVED' && toast.error('Categories are locked. Use "Request Change" to propose updates.')} className={productStatus === 'APPROVED' ? 'opacity-60 cursor-not-allowed' : ''}>
+                                    <SearchableSelect
+                                        options={categories}
+                                        selectedValues={formData.category_ids}
+                                        onSelect={id => setFormData({ ...formData, category_ids: [...formData.category_ids, id] })}
+                                        onRemove={id => setFormData({ ...formData, category_ids: formData.category_ids.filter(v => v !== id) })}
+                                        disabled={productStatus === 'APPROVED'}
+                                    />
+                                </div>
+                                {fieldErrors.category_ids && <p className="text-[10px] text-red-500 font-bold mt-1 ml-4">{fieldErrors.category_ids}</p>}
                             </div>
                         </div>
                     </div>
 
-                    {/* Card 2: Visual Symphony */}
-                    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 md:p-10 shadow-sm space-y-8">
+                    {/* Card 2: Product Images */}
+                    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 md:p-10 shadow-sm space-y-8 text-left">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 bg-primary/5 text-primary rounded-2xl flex items-center justify-center italic font-black text-lg">02</div>
                                 <div>
-                                    <h3 className="text-xl font-black text-primary tracking-tight">Global Media</h3>
-                                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Shared heritage photos</p>
+                                    <h3 className="text-xl font-black text-primary tracking-tight">Product Images</h3>
+                                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Shared product photos</p>
                                 </div>
                             </div>
-                            <label className="bg-primary text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all cursor-pointer shadow-lg active:scale-95">
-                                Add Images
-                                <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
-                            </label>
+                            <div className="flex flex-col items-end gap-2">
+                                <label className="bg-primary text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all cursor-pointer shadow-lg active:scale-95">
+                                    Add Images
+                                    <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
+                                </label>
+                                {fieldErrors.images && <p className="text-[10px] text-red-500 font-bold animate-in fade-in slide-in-from-top-1">{fieldErrors.images}</p>}
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
@@ -478,8 +524,8 @@ const ProductForm = () => {
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 bg-primary/5 text-primary rounded-2xl flex items-center justify-center italic font-black text-lg">03</div>
                                 <div>
-                                    <h3 className="text-xl font-black text-primary tracking-tight">Product Specs</h3>
-                                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Define core product details</p>
+                                    <h3 className="text-xl font-black text-primary tracking-tight">Product Variants</h3>
+                                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Define variations like size/color</p>
                                 </div>
                             </div>
                         </div>
@@ -579,26 +625,68 @@ const ProductForm = () => {
                                     </div>
                                     <div className="space-y-6 text-left">
                                         <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Commercial Specs</h5>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 gap-4">
                                             <div className="space-y-2 text-left">
-                                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Price (INR)</label>
-                                                <input
-                                                    type="number"
-                                                    placeholder="0.00"
-                                                    className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
-                                                    value={formData.variants[0].price}
-                                                    onChange={e => handleVariantChange(0, 'price', e.target.value)}
-                                                />
+                                                <div className="flex justify-between items-center ml-1">
+                                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Selling Price</label>
+                                                    <span className="text-[9px] font-bold text-accent uppercase tracking-widest">Sale</span>
+                                                </div>
+                                                <div className="relative">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        placeholder="0.00"
+                                                        className={`w-full pl-8 pr-6 py-4 bg-white border ${fieldErrors['variants.0.price'] ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
+                                                        value={formData.variants[0].price}
+                                                        onChange={e => handleVariantChange(0, 'price', e.target.value)}
+                                                        onBlur={e => handleBlur('variants.0.price', e.target.value)}
+                                                    />
+                                                </div>
+                                                {fieldErrors['variants.0.price'] && <p className="text-[9px] text-red-500 font-bold mt-1 ml-1 animate-in slide-in-from-top-1">{fieldErrors['variants.0.price']}</p>}
                                             </div>
                                             <div className="space-y-2 text-left">
-                                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Stock</label>
+                                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Original Price (Strike)</label>
+                                                <div className="relative">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Optional"
+                                                        className={`w-full pl-8 pr-6 py-4 bg-white border ${fieldErrors['variants.0.compare_at_price'] ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary/60 focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all strike-through`}
+                                                        value={formData.variants[0].compare_at_price}
+                                                        onChange={e => handleVariantChange(0, 'compare_at_price', e.target.value)}
+                                                        onBlur={e => handleBlur('variants.0.compare_at_price', e.target.value)}
+                                                    />
+                                                </div>
+                                                {fieldErrors['variants.0.compare_at_price'] && <p className="text-[9px] text-red-500 font-bold mt-1 ml-1 animate-in slide-in-from-top-1">{fieldErrors['variants.0.compare_at_price']}</p>}
+                                            </div>
+                                            <div className="space-y-2 text-left">
+                                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Inventory Count</label>
                                                 <input
                                                     type="number"
                                                     placeholder="0"
-                                                    className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all"
+                                                    className={`w-full px-6 py-4 bg-white border ${fieldErrors['variants.0.stock'] ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
                                                     value={formData.variants[0].stock}
                                                     onChange={e => handleVariantChange(0, 'stock', e.target.value)}
+                                                    onBlur={e => handleBlur('variants.0.stock', e.target.value)}
                                                 />
+                                                {fieldErrors['variants.0.stock'] && <p className="text-[9px] text-red-500 font-bold mt-1 ml-1 animate-in slide-in-from-top-1">{fieldErrors['variants.0.stock']}</p>}
+                                            </div>
+
+                                            {/* New: GST Rate Selection for Simple View */}
+                                            <div className="space-y-2 text-left">
+                                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">GST Rate (%)</label>
+                                                <select
+                                                    className={`w-full px-6 py-4 bg-white border ${fieldErrors['variants.0.gst_rate'] ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-[10px] font-black tracking-widest text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all outline-none appearance-none cursor-pointer`}
+                                                    value={formData.variants[0].gst_rate}
+                                                    onChange={e => handleVariantChange(0, 'gst_rate', Number(e.target.value))}
+                                                >
+                                                    <option value={0}>0% (Nill Rated)</option>
+                                                    <option value={5}>5% (Essential)</option>
+                                                    <option value={12}>12% (Standard Low)</option>
+                                                    <option value={18}>18% (Standard High)</option>
+                                                    <option value={28}>28% (Luxury)</option>
+                                                </select>
+                                                {fieldErrors['variants.0.gst_rate'] && <p className="text-[9px] text-red-500 font-bold mt-1 ml-1 animate-in slide-in-from-top-1">{fieldErrors['variants.0.gst_rate']}</p>}
                                             </div>
                                         </div>
                                         {formData.showAdvanced && (

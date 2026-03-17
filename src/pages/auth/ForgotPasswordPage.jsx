@@ -4,16 +4,35 @@ import { Mail, Key, ArrowLeft, Send } from 'lucide-react';
 import authApi from '../../api/auth';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { authSchemas } from '../../validations/auth.schema';
 
 const ForgotPasswordPage = () => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [success, setSuccess] = useState(false);
+
+    const handleBlur = (value) => {
+        const result = authSchemas.forgotPassword.safeParse({ email: value });
+        if (!result.success) {
+            setFieldErrors({ email: result.error.issues[0].message });
+        } else {
+            setFieldErrors({});
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setFieldErrors({});
+
+        const result = authSchemas.forgotPassword.safeParse({ email });
+        if (!result.success) {
+            setFieldErrors({ email: result.error.issues[0].message });
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -75,7 +94,12 @@ const ForgotPasswordPage = () => {
                             placeholder="name@example.com"
                             icon={<Mail size={18} className="text-gray-400" />}
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={(e) => {
+                                setEmail(e.target.value);
+                                if (fieldErrors.email) setFieldErrors({});
+                            }}
+                            onBlur={(e) => handleBlur(e.target.value)}
+                            error={fieldErrors.email}
                         />
 
                         <div className="pt-2">

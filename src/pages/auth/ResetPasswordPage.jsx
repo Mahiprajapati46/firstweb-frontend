@@ -4,6 +4,7 @@ import { Lock, RefreshCw, CheckCircle, ArrowRight } from 'lucide-react';
 import authApi from '../../api/auth';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { authSchemas } from '../../validations/auth.schema';
 
 const ResetPasswordPage = () => {
     const [searchParams] = useSearchParams();
@@ -13,26 +14,37 @@ const ResetPasswordPage = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [success, setSuccess] = useState(false);
 
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        if (!token) {
-            setError('Invalid reset link. No token provided.');
+    const handleBlur = (name, value) => {
+        const data = { password, confirmPassword, [name]: value };
+        const result = authSchemas.resetPassword.safeParse(data);
+        if (!result.success) {
+            const fieldIssue = result.error.issues.find(i => i.path[0] === name);
+            if (fieldIssue) {
+                setFieldErrors(prev => ({ ...prev, [name]: fieldIssue.message }));
+                return;
+            }
         }
-    }, [token]);
+        setFieldErrors(prev => {
+            const n = { ...prev };
+            delete n[name];
+            return n;
+        });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setFieldErrors({});
 
-        if (password !== confirmPassword) {
-            return setError('Passwords do not match.');
-        }
-
-        if (password.length < 8) {
-            return setError('Password must be at least 8 characters.');
+        const result = authSchemas.resetPassword.safeParse({ password, confirmPassword });
+        if (!result.success) {
+            const bErrors = {};
+            result.error.issues.forEach(i => { bErrors[i.path[0]] = i.message; });
+            setFieldErrors(bErrors);
+            return;
         }
 
         setLoading(true);
@@ -104,7 +116,14 @@ const ResetPasswordPage = () => {
                                 placeholder="Min. 8 characters"
                                 icon={<Lock size={18} className="text-gray-400" />}
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) => {
+                                    setPassword(e.target.value);
+                                    if (fieldErrors.password) setFieldErrors(prev => {
+                                        const n = { ...prev }; delete n.password; return n;
+                                    });
+                                }}
+                                onBlur={(e) => handleBlur('password', e.target.value)}
+                                error={fieldErrors.password}
                             />
 
                             <Input
@@ -114,7 +133,14 @@ const ResetPasswordPage = () => {
                                 placeholder="Re-enter password"
                                 icon={<Lock size={18} className="text-gray-400" />}
                                 value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                onChange={(e) => {
+                                    setConfirmPassword(e.target.value);
+                                    if (fieldErrors.confirmPassword) setFieldErrors(prev => {
+                                        const n = { ...prev }; delete n.confirmPassword; return n;
+                                    });
+                                }}
+                                onBlur={(e) => handleBlur('confirmPassword', e.target.value)}
+                                error={fieldErrors.confirmPassword}
                             />
 
                             <div className="pt-2">

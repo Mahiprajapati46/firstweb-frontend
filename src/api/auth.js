@@ -72,6 +72,14 @@ const authApi = {
         } catch (error) {
             throw error.response?.data || error;
         }
+    },
+    updateProfile: async (userData) => {
+        try {
+            const response = await api.patch('/users/me', userData);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
     }
 };
 

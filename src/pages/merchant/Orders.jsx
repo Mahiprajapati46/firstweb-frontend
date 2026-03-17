@@ -167,6 +167,27 @@ const Orders = () => {
                                     </div>
 
                                     <div className="flex items-center gap-10 justify-between md:justify-end">
+                                        <div className="text-right group/tax relative">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Taxation</p>
+                                            <p className="text-lg font-black text-primary tracking-tight">₹{order.tax_details?.total_tax?.toLocaleString() || '0'}</p>
+                                            {/* Tax Breakdown Tooltip */}
+                                            <div className="absolute bottom-full right-0 mb-2 w-48 bg-white p-4 rounded-xl shadow-2xl border border-gray-100 opacity-0 invisible group-hover/tax:opacity-100 group-hover/tax:visible transition-all z-50">
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                                        <span>CGST</span>
+                                                        <span className="text-primary">₹{order.tax_details?.cgst?.toLocaleString() || '0'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                                        <span>SGST</span>
+                                                        <span className="text-primary">₹{order.tax_details?.sgst?.toLocaleString() || '0'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                                        <span>IGST</span>
+                                                        <span className="text-primary">₹{order.tax_details?.igst?.toLocaleString() || '0'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <div className="text-right">
                                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Settlement</p>
                                             <p className="text-3xl font-black text-primary tracking-tight">₹{order.total?.toLocaleString() || '0'}</p>

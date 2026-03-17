@@ -39,7 +39,9 @@ const Variants = () => {
     const [variantForm, setVariantForm] = useState({
         sku: '',
         price: '',
+        compare_at_price: '',
         stock_quantity: '',
+        gst_rate: 18,
         attributes: { size: '', color: '' },
         is_default: false
     });
@@ -49,6 +51,7 @@ const Variants = () => {
     const [showChangeModal, setShowChangeModal] = useState(false);
     const [selectedVariant, setSelectedVariant] = useState(null);
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [categories, setCategories] = useState([]);
 
     useEffect(() => {
         fetchData();
@@ -57,12 +60,14 @@ const Variants = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [varRes, prodRes] = await Promise.all([
+            const [varRes, prodRes, catRes] = await Promise.all([
                 merchantApi.getVariants(id),
-                merchantApi.getProduct(id)
+                merchantApi.getProduct(id),
+                merchantApi.getCategories()
             ]);
             setVariants(varRes.data || []);
             setProduct(prodRes.data);
+            setCategories(catRes.data || []);
         } catch (error) {
             console.error('Fetch error:', error);
             toast.error('Failed to load variants');
@@ -89,7 +94,9 @@ const Variants = () => {
             setVariantForm({
                 sku: variant.sku,
                 price: variant.price.toString(),
+                compare_at_price: (variant.compare_at_price || '').toString(),
                 stock_quantity: (variant.stock_quantity || 0).toString(),
+                gst_rate: variant.gst_rate || 18,
                 attributes: mergedAttrs,
                 is_default: variant.is_default || false
             });
@@ -109,6 +116,7 @@ const Variants = () => {
             setVariantForm({
                 sku: '',
                 price: '',
+                compare_at_price: '',
                 stock_quantity: '',
                 attributes: defaultAttrs,
                 is_default: false
@@ -124,8 +132,9 @@ const Variants = () => {
     const handleBlur = (name, value) => {
         const currentData = {
             ...variantForm,
-            price: Number(variantForm.price),
-            stock: Number(variantForm.stock_quantity),
+            price: variantForm.price === '' ? 0 : Number(variantForm.price),
+            compare_at_price: variantForm.compare_at_price === '' ? undefined : Number(variantForm.compare_at_price),
+            stock: variantForm.stock_quantity === '' ? 0 : Number(variantForm.stock_quantity),
             images: imagePreviews
         };
 
@@ -172,6 +181,16 @@ const Variants = () => {
                 [key]: value
             }
         }));
+
+        // 🚀 Industrial UX: Clear error instantly as user types
+        const errorKey = `attributes.${key}`;
+        if (fieldErrors[errorKey]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[errorKey];
+                return newErrors;
+            });
+        }
     };
 
     const addAttribute = () => {
@@ -206,7 +225,9 @@ const Variants = () => {
                 formData.append('sku', variantForm.sku);
             }
             formData.append('price', variantForm.price);
+            formData.append('compare_at_price', variantForm.compare_at_price);
             formData.append('stock_quantity', variantForm.stock_quantity);
+            formData.append('gst_rate', variantForm.gst_rate);
             formData.append('is_default', variantForm.is_default);
 
             // Filter attributes here too so we don't send empty ones to DB
@@ -235,11 +256,27 @@ const Variants = () => {
                     return acc;
                 }, {});
 
+            // 🛡️ Industrial Duplicate Variant Check (Prevent same Size/Color combo)
+            const isDuplicate = variants.some(v => {
+                if (editingVariant && v._id === editingVariant._id) return false;
+                const existingKeys = Object.keys(v.attributes || {});
+                const newKeys = Object.keys(filteredAttributes);
+                if (existingKeys.length !== newKeys.length) return false;
+                return newKeys.every(k => v.attributes[k] === filteredAttributes[k]);
+            });
+
+            if (isDuplicate) {
+                toast.error("A variant with these same attributes already exists");
+                setLoading(false);
+                return;
+            }
+
             const validationData = {
                 ...variantForm,
                 attributes: filteredAttributes,
-                price: Number(variantForm.price),
-                stock: Number(variantForm.stock_quantity),
+                price: variantForm.price === '' ? 0 : Number(variantForm.price),
+                compare_at_price: variantForm.compare_at_price === '' ? undefined : Number(variantForm.compare_at_price),
+                stock: variantForm.stock_quantity === '' ? 0 : Number(variantForm.stock_quantity),
                 images: imagePreviews
             };
             const result = productSchemas.variant.safeParse(validationData);
@@ -323,6 +360,16 @@ const Variants = () => {
             fetchData();
         } catch (error) {
             toast.error('Deletion failed');
+        }
+    };
+
+    const handleRequestChange = (type, variant = null) => {
+        if (type === 'PRODUCT') {
+            setSelectedVariant(product); // Using selectedVariant state to hold the 'entity' being changed
+            setShowChangeModal(true);
+        } else if (type === 'VARIANT' && variant) {
+            setSelectedVariant(variant);
+            setShowChangeModal(true);
         }
     };
 
@@ -461,7 +508,7 @@ const Variants = () => {
                                         onBlur={(e) => handleBlur('sku', e.target.value)}
                                         disabled={editingVariant && ['APPROVED', 'PENDING'].includes(product?.status)}
                                     />
-                                    {fieldErrors.sku && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold italic underline decoration-red-200">! {fieldErrors.sku}</p>}
+                                    {fieldErrors.sku && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold">{fieldErrors.sku}</p>}
                                     {editingVariant && ['APPROVED', 'PENDING'].includes(product?.status) && (
                                         <Lock size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-accent/50" />
                                     )}
@@ -469,38 +516,84 @@ const Variants = () => {
                             </div>
                         )}
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Price (INR)</label>
-                            <input
-                                type="number"
-                                placeholder="0.00"
-                                className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors.price ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
-                                value={variantForm.price}
-                                onChange={(e) => {
-                                    setVariantForm({ ...variantForm, price: e.target.value });
-                                    if (fieldErrors.price) setFieldErrors(prev => { const n = { ...prev }; delete n.price; return n; });
-                                }}
-                                onBlur={(e) => handleBlur('price', e.target.value)}
-                                required
-                            />
-                            {fieldErrors.price && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold italic underline decoration-red-200">! {fieldErrors.price}</p>}
+                        <div className="grid grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Selling Price (INR)</label>
+                                    {variantForm.compare_at_price && Number(variantForm.compare_at_price) > Number(variantForm.price) && (
+                                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-lg animate-in fade-in zoom-in-95">
+                                            {Math.round(((Number(variantForm.compare_at_price) - Number(variantForm.price)) / Number(variantForm.compare_at_price)) * 100)}% Off
+                                        </span>
+                                    )}
+                                </div>
+                                <input
+                                    type="number"
+                                    placeholder="0.00"
+                                    className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors.price ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
+                                    value={variantForm.price}
+                                    onChange={(e) => {
+                                        setVariantForm({ ...variantForm, price: e.target.value });
+                                        if (fieldErrors.price) setFieldErrors(prev => { const n = { ...prev }; delete n.price; return n; });
+                                    }}
+                                    onBlur={(e) => handleBlur('price', e.target.value)}
+                                    required
+                                />
+                                {fieldErrors.price && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold">{fieldErrors.price}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Original Price (Strike)</label>
+                                <input
+                                    type="number"
+                                    placeholder="Optional"
+                                    className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors.compare_at_price ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary/60 focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all strike-through`}
+                                    value={variantForm.compare_at_price}
+                                    onChange={(e) => {
+                                        setVariantForm({ ...variantForm, compare_at_price: e.target.value });
+                                        if (fieldErrors.compare_at_price) setFieldErrors(prev => { const n = { ...prev }; delete n.compare_at_price; return n; });
+                                    }}
+                                    onBlur={(e) => handleBlur('compare_at_price', e.target.value)}
+                                />
+                                {fieldErrors.compare_at_price && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold">{fieldErrors.compare_at_price}</p>}
+                            </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Current Stock</label>
-                            <input
-                                type="number"
-                                placeholder="0"
-                                className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors.stock_quantity ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
-                                value={variantForm.stock_quantity}
-                                onChange={(e) => {
-                                    setVariantForm({ ...variantForm, stock_quantity: e.target.value });
-                                    if (fieldErrors.stock_quantity) setFieldErrors(prev => { const n = { ...prev }; delete n.stock_quantity; return n; });
-                                }}
-                                onBlur={(e) => handleBlur('stock_quantity', e.target.value)}
-                                required
-                            />
-                            {fieldErrors.stock_quantity && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold italic underline decoration-red-200">! {fieldErrors.stock_quantity}</p>}
+                        <div className="grid grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Current Stock</label>
+                                <input
+                                    type="number"
+                                    placeholder="0"
+                                    className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors.stock_quantity ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-lg font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
+                                    value={variantForm.stock_quantity}
+                                    onChange={(e) => {
+                                        setVariantForm({ ...variantForm, stock_quantity: e.target.value });
+                                        if (fieldErrors.stock_quantity) setFieldErrors(prev => { const n = { ...prev }; delete n.stock_quantity; return n; });
+                                    }}
+                                    onBlur={(e) => handleBlur('stock_quantity', e.target.value)}
+                                    required
+                                />
+                                {fieldErrors.stock_quantity && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold">{fieldErrors.stock_quantity}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">GST Rate (%)</label>
+                                <select
+                                    className={`w-full px-6 py-4 bg-gray-50/50 border ${fieldErrors.gst_rate ? 'border-red-500' : 'border-gray-100'} rounded-2xl text-[10px] font-black tracking-widest text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all outline-none appearance-none cursor-pointer`}
+                                    value={variantForm.gst_rate}
+                                    onChange={(e) => {
+                                        setVariantForm({ ...variantForm, gst_rate: Number(e.target.value) });
+                                        if (fieldErrors.gst_rate) setFieldErrors(prev => { const n = { ...prev }; delete n.gst_rate; return n; });
+                                    }}
+                                >
+                                    <option value={0}>0% (Nill Rated)</option>
+                                    <option value={5}>5% (Essential)</option>
+                                    <option value={12}>12% (Standard Low)</option>
+                                    <option value={18}>18% (Standard High)</option>
+                                    <option value={28}>28% (Luxury)</option>
+                                </select>
+                                {fieldErrors.gst_rate && <p className="text-[10px] text-red-500 mt-2 ml-1 font-bold">{fieldErrors.gst_rate}</p>}
+                            </div>
                         </div>
 
                         {/* Attribute Logic */}
@@ -516,7 +609,7 @@ const Variants = () => {
                                 </button>
                             </div>
                             {fieldErrors.attributes && (
-                                <p className="text-[10px] text-red-500 font-bold italic mb-2">! {fieldErrors.attributes}</p>
+                                <p className="text-[10px] text-red-500 font-bold mb-2">{fieldErrors.attributes}</p>
                             )}
                             <div className="grid grid-cols-2 gap-6 bg-gray-50/50 p-8 rounded-[2rem] border border-gray-100">
                                 {Object.entries(variantForm.attributes).map(([key, value]) => (
@@ -554,42 +647,50 @@ const Variants = () => {
                                             onBlur={() => handleBlur(`attributes.${key}`, value)}
                                             className={`w-full px-6 py-3 bg-white border ${fieldErrors[`attributes.${key}`] ? 'border-red-500' : 'border-gray-100'} rounded-xl text-sm font-black text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all`}
                                         />
-                                        {fieldErrors[`attributes.${key}`] && (
-                                            <p className="text-[9px] text-red-500 font-bold italic mt-1 ml-1 animate-in slide-in-from-left-2">
-                                                ! {fieldErrors[`attributes.${key}`]}
-                                            </p>
-                                        )}
+                                        <p className="text-[9px] text-red-500 font-bold mt-1 ml-1 animate-in slide-in-from-left-2">
+                                            {fieldErrors[`attributes.${key}`]}
+                                        </p>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        <div className={`md:col-span-2 flex items-center gap-4 p-6 rounded-2xl transition-all ${['APPROVED', 'PENDING'].includes(product?.status) ? 'bg-gray-50 opacity-60' : 'bg-primary/5 border border-primary/10'}`}>
-                            <input
-                                type="checkbox"
-                                id="is_default"
-                                checked={variantForm.is_default}
-                                onChange={(e) => setVariantForm({ ...variantForm, is_default: e.target.checked })}
-                                className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary/20 cursor-pointer"
-                                disabled={['APPROVED', 'PENDING'].includes(product?.status)}
-                            />
-                            <label htmlFor="is_default" className="text-xs font-black text-primary uppercase tracking-widest cursor-pointer select-none">
-                                Primary Product Choice (Default Variant)
-                            </label>
-                            {['APPROVED', 'PENDING'].includes(product?.status) && <Lock size={14} className="text-accent ml-auto" />}
+                        <div className={`md:col-span-2 flex flex-col gap-2 p-6 rounded-2xl transition-all ${['APPROVED', 'PENDING'].includes(product?.status) ? 'bg-gray-50 opacity-60' : 'bg-primary/5 border border-primary/10'}`}>
+                            <div className="flex items-center gap-4">
+                                <input
+                                    type="checkbox"
+                                    id="is_default"
+                                    checked={variantForm.is_default}
+                                    onChange={(e) => setVariantForm({ ...variantForm, is_default: e.target.checked })}
+                                    className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary/20 cursor-pointer"
+                                    disabled={['APPROVED', 'PENDING'].includes(product?.status) || (editingVariant && editingVariant.is_default)}
+                                />
+                                <label htmlFor="is_default" className="text-xs font-black text-primary uppercase tracking-widest cursor-pointer select-none">
+                                    Primary Product Choice (Default Variant)
+                                </label>
+                                {['APPROVED', 'PENDING'].includes(product?.status) && <Lock size={14} className="text-accent ml-auto" />}
+                            </div>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-9">
+                                {editingVariant && editingVariant.is_default
+                                    ? "This is currently your primary variant shown to customers."
+                                    : "Checking this will promote this variant to be the first one customers see."}
+                            </p>
                         </div>
 
                         {/* Variant Gallery */}
                         <div className="md:col-span-2 space-y-4 pt-6">
-                            <div className="flex items-center gap-3">
-                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Variant Images</h3>
-                                <div className="group relative">
-                                    <AlertCircle size={12} className="text-gray-300 cursor-help" />
-                                    <div className="absolute left-0 top-6 w-64 p-4 bg-black text-[9px] text-white font-medium rounded-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none shadow-2xl normal-case">
-                                        <p className="font-black text-accent uppercase mb-1 tracking-widest">Variation Rule:</p>
-                                        Only upload photos if this variant is **visually different** (e.g. Color). If left empty, the generic Product Images will be used.
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Variant Images</h3>
+                                    <div className="group relative">
+                                        <AlertCircle size={12} className="text-gray-300 cursor-help" />
+                                        <div className="absolute left-0 top-6 w-64 p-4 bg-black text-[9px] text-white font-medium rounded-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none shadow-2xl normal-case">
+                                            <p className="font-black text-accent uppercase mb-1 tracking-widest">Variation Rule:</p>
+                                            Only upload photos if this variant is **visually different** (e.g. Color). If left empty, the generic Product Images will be used.
+                                        </div>
                                     </div>
                                 </div>
+                                {fieldErrors.images && <p className="text-[10px] text-red-500 font-bold animate-in fade-in slide-in-from-top-1">{fieldErrors.images}</p>}
                             </div>
                             <div className="flex flex-wrap gap-6">
                                 {imagePreviews.map((preview, idx) => (
@@ -707,7 +808,12 @@ const Variants = () => {
                                             <DollarSign size={14} className="text-accent" />
                                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Price</span>
                                         </div>
-                                        <p className="text-xl font-black text-primary italic">₹{v.price.toLocaleString()}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-xl font-black text-primary italic">₹{v.price.toLocaleString()}</p>
+                                            {v.compare_at_price && v.compare_at_price > v.price && (
+                                                <span className="text-[10px] font-bold text-gray-300 line-through">₹{v.compare_at_price.toLocaleString()}</span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 group/item relative overflow-hidden">
                                         <div className="flex items-center gap-2 mb-1">
@@ -748,9 +854,10 @@ const Variants = () => {
                             setShowChangeModal(false);
                             setSelectedVariant(null);
                         }}
-                        entityType="VARIANT"
+                        entityType={selectedVariant.title ? 'PRODUCT' : 'VARIANT'}
                         entityId={selectedVariant._id}
                         currentData={selectedVariant}
+                        categories={categories}
                     />
                 )
             }

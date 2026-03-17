@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, ArrowRight, Lock, Layout, Info, AlertCircle } from 'lucide-react';
+import { X, Check, ArrowRight, Lock, Layout, Info, AlertCircle, FileText, GitPullRequest } from 'lucide-react';
 import merchantApi from '../../api/merchant';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import { merchantSchemas } from '../../validations/merchant.schema';
 import { toast } from 'react-hot-toast';
 import SearchableSelect from '../ui/SearchableSelect';
 
@@ -22,6 +23,7 @@ const ChangeRequestModal = ({
         sku: '',
         justification: ''
     });
+    const [fieldErrors, setFieldErrors] = useState({});
 
     useEffect(() => {
         if (isOpen && currentData) {
@@ -32,21 +34,54 @@ const ChangeRequestModal = ({
                 sku: currentData.sku || '',
                 justification: ''
             });
+            setFieldErrors({});
         }
     }, [isOpen, currentData]);
+
+    const handleBlur = (name, value) => {
+        const schema = entityType === 'PRODUCT' ? merchantSchemas.productChangeRequest : merchantSchemas.variantChangeRequest;
+        const dataToValidate = { ...proposedData, [name]: value };
+        const result = schema.safeParse(dataToValidate);
+
+        if (!result.success) {
+            const fieldIssue = result.error.issues.find(i => i.path[0] === name);
+            if (fieldIssue) {
+                setFieldErrors(prev => ({ ...prev, [name]: fieldIssue.message }));
+                return;
+            }
+        }
+        setFieldErrors(prev => {
+            const n = { ...prev };
+            delete n[name];
+            return n;
+        });
+    };
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!proposedData.justification) {
-            toast.error('Please provide a justification for this proposal');
+        setFieldErrors({});
+
+        // 1. Zod Validation
+        const schema = entityType === 'PRODUCT' ? merchantSchemas.productChangeRequest : merchantSchemas.variantChangeRequest;
+        const result = schema.safeParse(proposedData);
+
+        if (!result.success) {
+            const errors = {};
+            result.error.issues.forEach(issue => {
+                errors[issue.path[0]] = issue.message;
+            });
+            setFieldErrors(errors);
+            toast.error('Please fix the validation errors');
             return;
         }
 
         try {
             setLoading(true);
             const requested_changes = {};
+
+            // 2. Dirty Check (Redundancy Check)
 
             if (entityType === 'PRODUCT') {
                 if (proposedData.title !== currentData.title) requested_changes.title = proposedData.title;
@@ -61,7 +96,7 @@ const ChangeRequestModal = ({
             }
 
             if (Object.keys(requested_changes).length === 0) {
-                toast.error('No changes detected to request');
+                toast.error('No changes detected to request (Redundancy Check)');
                 return;
             }
 
@@ -87,142 +122,128 @@ const ChangeRequestModal = ({
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
 
-            <div className="bg-white rounded-[2.5rem] w-full max-w-5xl relative z-10 shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+            <div className="bg-white rounded-[3rem] w-full max-w-xl relative z-10 shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
                 {/* Header */}
-                <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50 rounded-t-[2.5rem]">
+                <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50 rounded-t-[3rem]">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
-                            <Info size={24} />
+                        <div className="w-12 h-12 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-primary shadow-sm">
+                            <GitPullRequest size={24} />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Request Change</h2>
-                            <p className="text-slate-500 font-medium text-sm lowercase mt-0.5">Check the current details and send your changes for review.</p>
+                            <h2 className="text-lg font-black text-slate-900 tracking-tight uppercase font-outfit">Request Change</h2>
+                            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-wider mt-1 font-inter">Propose updates for review</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-3 hover:bg-white border border-transparent hover:border-slate-200 rounded-2xl transition-all group">
+                    <button onClick={onClose} className="p-3 hover:bg-white border border-transparent hover:border-slate-200 rounded-2xl transition-all group shadow-sm bg-slate-100/50">
                         <X size={20} className="text-slate-400 group-hover:text-slate-900" />
                     </button>
                 </div>
 
                 {/* Content */}
                 <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative">
-                        {/* Current Values (Locked) */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-2 mb-2 px-1">
-                                <Lock size={14} className="text-slate-400" />
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Details (Reference)</span>
+                    <div className="space-y-6">
+                        {/* Comparison Area */}
+                        <div className="grid grid-cols-1 gap-4">
+                            {/* Current Values (Reference) */}
+                            <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-[2rem]">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <Lock size={12} /> Current Details
+                                </label>
+                                <div className="space-y-4">
+                                    {isProduct ? (
+                                        <>
+                                            <div className="flex justify-between items-center py-2 border-b border-slate-100/50">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Title</span>
+                                                <span className="text-xs font-black text-slate-900">{currentData.title}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center py-2 border-b border-slate-100/50">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Categories</span>
+                                                <div className="flex gap-1">
+                                                    {categories.filter(c => currentData.category_ids?.includes(c._id)).slice(0, 2).map(cat => (
+                                                        <span key={cat._id} className="text-[8px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{cat.name}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100/50">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">SKU</span>
+                                            <span className="text-xs font-black text-slate-900">{currentData.sku}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="bg-slate-50 rounded-3xl p-6 space-y-6 border border-slate-100/50">
+                            {/* Proposed Values */}
+                            <div className="space-y-6">
                                 {isProduct ? (
                                     <>
-                                        <div className="space-y-1.5 opacity-60">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Title</p>
-                                            <div className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-900">
-                                                {currentData.title}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5 opacity-60">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Description</p>
-                                            <div className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-medium text-slate-700 min-h-[100px]">
-                                                {currentData.description}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5 opacity-60">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categories</p>
-                                            <div className="flex flex-wrap gap-2 p-2 bg-white border border-slate-100 rounded-2xl min-h-[50px]">
-                                                {categories.filter(c => currentData.category_ids?.includes(c._id)).map(cat => (
-                                                    <span key={cat._id} className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-600">
-                                                        {cat.name}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="space-y-1.5 opacity-60">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">SKU</p>
-                                        <div className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-900">
-                                            {currentData.sku}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Middle Arrow Indicator */}
-                        <div className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white border border-slate-100 rounded-full items-center justify-center text-primary shadow-lg z-10">
-                            <ArrowRight size={20} />
-                        </div>
-
-                        {/* Proposed Values (Editable) */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-2 mb-2 px-1">
-                                <Check size={14} className="text-primary" />
-                                <span className="text-[10px] font-black text-primary uppercase tracking-widest">Your Changes</span>
-                            </div>
-
-                            <div className="bg-white border border-primary/10 rounded-3xl p-6 space-y-6 shadow-xl shadow-primary/5 ring-4 ring-primary/5">
-                                {isProduct ? (
-                                    <>
-                                        <div>
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 ml-1">New Title</label>
-                                            <input
-                                                type="text"
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/5 transition-all outline-none"
-                                                value={proposedData.title}
-                                                onChange={(e) => setProposedData({ ...proposedData, title: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 ml-1">New Description</label>
-                                            <textarea
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-primary/5 transition-all min-h-[100px] outline-none"
-                                                value={proposedData.description}
-                                                onChange={(e) => setProposedData({ ...proposedData, description: e.target.value })}
-                                            />
-                                        </div>
+                                        <Input
+                                            label="New Title"
+                                            value={proposedData.title}
+                                            onChange={(e) => setProposedData({ ...proposedData, title: e.target.value })}
+                                            onBlur={(e) => handleBlur('title', e.target.value)}
+                                            error={fieldErrors.title}
+                                            placeholder="Enter updated title..."
+                                            icon={<Layout size={18} className="text-slate-300" />}
+                                        />
                                         <div className="space-y-4">
                                             <SearchableSelect
                                                 options={categories}
                                                 selectedValues={proposedData.category_ids}
-                                                onSelect={(id) => setProposedData({ ...proposedData, category_ids: [...proposedData.category_ids, id] })}
-                                                onRemove={(id) => setProposedData({ ...proposedData, category_ids: proposedData.category_ids.filter(val => val !== id) })}
+                                                onSelect={(id) => {
+                                                    const newCats = [...proposedData.category_ids, id];
+                                                    setProposedData({ ...proposedData, category_ids: newCats });
+                                                    handleBlur('category_ids', newCats);
+                                                }}
+                                                onRemove={(id) => {
+                                                    const newCats = proposedData.category_ids.filter(val => val !== id);
+                                                    setProposedData({ ...proposedData, category_ids: newCats });
+                                                    handleBlur('category_ids', newCats);
+                                                }}
                                                 label="New Categories"
+                                                error={fieldErrors.category_ids}
                                             />
                                         </div>
+                                        <Input
+                                            label="New Description"
+                                            value={proposedData.description}
+                                            onChange={(e) => setProposedData({ ...proposedData, description: e.target.value })}
+                                            onBlur={(e) => handleBlur('description', e.target.value)}
+                                            error={fieldErrors.description}
+                                            multiline
+                                            rows={3}
+                                            placeholder="Update product description..."
+                                            icon={<FileText size={18} className="text-slate-300" />}
+                                        />
                                     </>
                                 ) : (
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 ml-1">New SKU</label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/5 transition-all outline-none"
-                                            value={proposedData.sku}
-                                            onChange={(e) => setProposedData({ ...proposedData, sku: e.target.value })}
-                                        />
-                                    </div>
+                                    <Input
+                                        label="New SKU Proposal"
+                                        value={proposedData.sku}
+                                        onChange={(e) => setProposedData({ ...proposedData, sku: e.target.value.toUpperCase() })}
+                                        onBlur={(e) => handleBlur('sku', e.target.value.toUpperCase())}
+                                        error={fieldErrors.sku}
+                                        placeholder="Enter new SKU..."
+                                        icon={<Lock size={18} className="text-slate-300" />}
+                                    />
                                 )}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Reason for Change */}
-                    <div className="bg-primary/5 rounded-[2rem] p-10 border border-primary/10 space-y-5 relative overflow-hidden">
-                        <div className="relative z-10 flex items-center gap-3">
-                            <AlertCircle size={20} className="text-primary" />
-                            <h3 className="text-sm font-black text-primary uppercase tracking-wider">Reason for Change</h3>
-                        </div>
-                        <p className="relative z-10 text-xs text-slate-500 font-medium leading-relaxed">Please explain why you are making these changes. This helps the admin review your request faster.</p>
-                        <textarea
+                        {/* Reason for Change */}
+                        <Input
+                            label="Reason for Change"
                             required
-                            placeholder="e.g., Refreshing SKU to align with our new inventory naming convention starting Spring 2026..."
-                            className="relative z-10 w-full px-8 py-6 bg-white border border-slate-100 rounded-[2rem] text-sm font-medium focus:ring-8 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all h-32 italic"
+                            multiline
+                            rows={3}
+                            placeholder="Why are these changes necessary?"
+                            icon={<AlertCircle size={18} className="text-slate-300" />}
                             value={proposedData.justification}
                             onChange={(e) => setProposedData({ ...proposedData, justification: e.target.value })}
+                            onBlur={(e) => handleBlur('justification', e.target.value)}
+                            error={fieldErrors.justification}
                         />
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-16 translate-x-16" />
                     </div>
                 </form>
 

@@ -9,7 +9,7 @@ export const productSchemas = {
         title: z
             .string()
             .trim()
-            .min(5, "Product title must be at least 5 characters")
+            .min(3, "Product title must be at least 3 characters")
             .max(100, "Product title is too long")
             .refine((val) => /[a-zA-Z]/.test(val), "Product title must contain letters"),
 
@@ -27,10 +27,15 @@ export const productSchemas = {
         // Every product must have at least one variant.
         variants: z.array(z.object({
             price: z.coerce.number().positive("Variant price must be greater than zero"),
+            compare_at_price: z.coerce.number().optional().or(z.literal("")),
             stock: z.coerce.number().int().nonnegative("Variant stock cannot be negative").default(0),
             sku: z.string().trim().max(30).optional().or(z.literal("")),
+            gst_rate: z.coerce.number().default(18),
             attributes: z.record(z.string(), z.string().trim().min(1, "Value is required").or(z.number())).optional(),
             image: z.any().optional(), // Specific variant thumbnail
+        }).refine(v => !v.compare_at_price || Number(v.compare_at_price) >= Number(v.price), {
+            message: "Original price cannot be lower than the selling price",
+            path: ["compare_at_price"]
         })).min(1, "At least one product variant is required"),
 
         // We validate image count on frontend separately
@@ -48,10 +53,11 @@ export const productSchemas = {
         compare_at_price: z.coerce.number().optional(),
         stock: z.coerce.number().int().nonnegative("Stock cannot be negative").default(0),
         is_default: z.coerce.boolean().default(false),
+        gst_rate: z.coerce.number().default(18),
         sort_order: z.coerce.number().int().default(0),
         images: z.array(z.any()).optional(),
     }).refine(data => !data.compare_at_price || Number(data.compare_at_price) >= Number(data.price), {
-        message: "Compare-at price should be greater than or equal to selling price",
+        message: "Original price cannot be lower than the selling price",
         path: ["compare_at_price"]
     }),
 };

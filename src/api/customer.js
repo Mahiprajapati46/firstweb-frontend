@@ -12,7 +12,7 @@ const customerApi = {
     },
 
     // Products
-    getProducts: async ({ page = 1, limit = 20, category, minPrice, maxPrice } = {}) => {
+    getProducts: async ({ page = 1, limit = 20, category, minPrice, maxPrice, merchant_slug } = {}) => {
         try {
             const params = new URLSearchParams();
             params.append('page', page);
@@ -20,8 +20,18 @@ const customerApi = {
             if (category) params.append('category', category);
             if (minPrice) params.append('min_price', minPrice);
             if (maxPrice) params.append('max_price', maxPrice);
+            if (merchant_slug) params.append('merchant_slug', merchant_slug);
 
             const response = await api.get(`/products?${params.toString()}`);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    getMerchantBySlug: async (slug) => {
+        try {
+            const response = await api.get(`/products/merchants/${slug}`);
             return response.data;
         } catch (error) {
             throw error.response?.data || error;
@@ -176,11 +186,12 @@ const customerApi = {
         }
     },
 
-    checkoutPreview: async (couponCode = '', variantIds = []) => {
+    checkoutPreview: async (couponCode = '', variantIds = [], state = '') => {
         try {
             const params = new URLSearchParams();
             if (couponCode) params.append('coupon_code', couponCode);
             if (variantIds?.length > 0) params.append('variant_ids', variantIds.join(','));
+            if (state) params.append('state', state);
 
             const url = `/customers/orders/preview${params.toString() ? '?' + params.toString() : ''}`;
             const response = await api.get(url);

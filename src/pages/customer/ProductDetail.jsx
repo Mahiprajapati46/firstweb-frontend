@@ -12,7 +12,8 @@ import {
     Sparkles,
     ShoppingBasket,
     Info,
-    CheckCircle2
+    CheckCircle2,
+    Store
 } from 'lucide-react';
 import customerApi from '../../api/customer';
 import { useAuth } from '../../context/AuthContext';
@@ -309,10 +310,18 @@ const ProductDetail = () => {
                     {/* RIGHT SIDE: Product Info */}
                     <div className="lg:col-span-12 xl:col-span-6 space-y-8">
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
-                                    <ShieldCheck size={12} className="text-gray-400" /> STORE ID: {product.artisan_id?.slice(-8).toUpperCase()}
+                                    <ShieldCheck size={12} className="text-gray-400" /> STORE ID: {product.merchant_id?._id?.slice(-8).toUpperCase()}
                                 </span>
+                                {product.merchant_id && (
+                                    <Link 
+                                        to={`/store/${product.merchant_id.store_slug}`}
+                                        className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1.5"
+                                    >
+                                        <Store size={12} /> Visit {product.merchant_id.store_name}
+                                    </Link>
+                                )}
                             </div>
                             <h1 className="text-3xl font-bold text-gray-900 leading-tight">{product.title}</h1>
 

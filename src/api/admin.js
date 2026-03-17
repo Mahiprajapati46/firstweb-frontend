@@ -171,10 +171,11 @@ const adminApi = {
             throw error.response?.data || error;
         }
     },
-    getAdminProducts: async ({ status, page = 1, limit = 20 } = {}) => {
+    getAdminProducts: async ({ status, merchant_id, page = 1, limit = 20 } = {}) => {
         try {
             const params = new URLSearchParams();
             if (status) params.append('status', status);
+            if (merchant_id) params.append('merchant_id', merchant_id);
             params.append('page', page);
             params.append('limit', limit);
             const response = await api.get(`/admin/products?${params.toString()}`);
@@ -390,6 +391,64 @@ const adminApi = {
         try {
             const response = await api.delete(`/admin/reviews/${reviewId}`);
             return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    // Reports
+    exportPlatformSales: async (params) => {
+        try {
+            const response = await api.get('/admin/reports/platform-sales', {
+                params,
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Platform_Sales_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            return { success: true };
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    exportTaxationLedger: async (params) => {
+        try {
+            const response = await api.get('/admin/reports/taxation-ledger', {
+                params,
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Tax_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            return { success: true };
+        } catch (error) {
+            throw error.response?.data || error;
+        }
+    },
+
+    exportMerchantRanking: async (params) => {
+        try {
+            const response = await api.get('/admin/reports/merchant-ranking', {
+                params,
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Merchant_Performance_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            return { success: true };
         } catch (error) {
             throw error.response?.data || error;
         }

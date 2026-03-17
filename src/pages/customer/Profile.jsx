@@ -16,8 +16,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import customerApi from '../../api/customer';
+import authApi from '../../api/auth';
 import toast from 'react-hot-toast';
 import { commonSchemas } from '../../validations/common.schema';
+import { customerSchemas } from '../../validations/customer.schema';
 import Input from '../../components/ui/Input';
 
 const Profile = () => {
@@ -26,8 +28,13 @@ const Profile = () => {
     const [loading, setLoading] = useState(true);
     const [isAddMode, setIsAddMode] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [fieldErrors, setFieldErrors] = useState({});
+    const [profileForm, setProfileForm] = useState({
+        full_name: user?.full_name || '',
+        phone: user?.phone || ''
+    });
     const [newAddress, setNewAddress] = useState({
         name: '',
         phone: '',
@@ -84,8 +91,6 @@ const Profile = () => {
             cleanedValue = value.replace(/\D/g, '').slice(0, 10);
         } else if (name === 'pincode') {
             cleanedValue = value.replace(/\D/g, '').slice(0, 6);
-        } else if (name === 'city' || name === 'state') {
-            cleanedValue = value.replace(/[^a-zA-Z\s]/g, '');
         }
 
         setNewAddress(prev => ({ ...prev, [name]: cleanedValue }));
@@ -202,6 +207,46 @@ const Profile = () => {
         }
     };
 
+    const handleProfileChange = (name, value) => {
+        let cleanedValue = value;
+        if (name === 'phone') {
+            cleanedValue = value.replace(/\D/g, '').slice(0, 10);
+        }
+
+        setProfileForm(prev => ({ ...prev, [name]: cleanedValue }));
+
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
+    };
+
+    const handleProfileUpdate = async (e) => {
+        e.preventDefault();
+
+        const result = customerSchemas.updateProfile.safeParse(profileForm);
+        if (!result.success) {
+            const errors = {};
+            result.error.issues.forEach(issue => {
+                errors[issue.path[0]] = issue.message;
+            });
+            setFieldErrors(errors);
+            return;
+        }
+
+        try {
+            await authApi.updateProfile(profileForm);
+            toast.success('Profile updated successfully');
+            setIsEditingProfile(false);
+            window.location.reload();
+        } catch (error) {
+            toast.error(error.message || 'Failed to update profile');
+        }
+    };
+
     return (
         <div className="bg-[#f8f9fa] min-h-screen py-12 md:py-20 animate-in fade-in duration-700">
             <div className="max-w-6xl mx-auto px-4 md:px-6 pt-12">
@@ -215,26 +260,81 @@ const Profile = () => {
                     {/* Sidebar Profile Card */}
                     <div className="lg:col-span-1 space-y-6">
                         <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-                            <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 bg-primary text-white rounded-xl flex items-center justify-center text-xl font-black">
-                                    {user?.full_name?.charAt(0) || 'U'}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-primary text-white rounded-xl flex items-center justify-center text-xl font-black">
+                                        {user?.full_name?.charAt(0) || 'U'}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h2 className="text-xl font-bold text-gray-900 truncate">{user?.full_name ?? 'Guest User'}</h2>
+                                        <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                                    </div>
                                 </div>
-                                <div className="min-w-0">
-                                    <h2 className="text-xl font-bold text-gray-900 truncate">{user?.full_name ?? 'Guest User'}</h2>
-                                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-                                </div>
+                                {!isEditingProfile && (
+                                    <button
+                                        onClick={() => {
+                                            setProfileForm({
+                                                full_name: user?.full_name || '',
+                                                phone: user?.phone || ''
+                                            });
+                                            setIsEditingProfile(true);
+                                            setFieldErrors({});
+                                        }}
+                                        className="p-2 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
+                                    >
+                                        <Edit size={16} />
+                                    </button>
+                                )}
                             </div>
 
-                            <div className="pt-6 border-t border-gray-50 grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Member Since</p>
-                                    <p className="text-sm font-bold text-gray-900 mt-1">{new Date(user?.createdAt || Date.now()).getFullYear()}</p>
+                            {isEditingProfile ? (
+                                <form onSubmit={handleProfileUpdate} className="space-y-4 pt-4 border-t border-gray-50 animate-in slide-in-from-top-2 duration-300">
+                                    <Input
+                                        label="Full Name"
+                                        value={profileForm.full_name}
+                                        onChange={(e) => handleProfileChange('full_name', e.target.value)}
+                                        error={fieldErrors.full_name}
+                                        placeholder="Enter your full name"
+                                        icon={<User size={16} />}
+                                        required
+                                    />
+                                    <Input
+                                        label="Phone Number"
+                                        value={profileForm.phone}
+                                        onChange={(e) => handleProfileChange('phone', e.target.value)}
+                                        error={fieldErrors.phone}
+                                        placeholder="10-digit number"
+                                        icon={<AtSign size={16} />}
+                                        required
+                                    />
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="submit"
+                                            className="flex-1 py-2 bg-primary text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-secondary transition-all"
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsEditingProfile(false)}
+                                            className="px-4 py-2 text-gray-400 text-xs font-bold uppercase hover:text-red-500 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <div className="pt-6 border-t border-gray-50 grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Member Since</p>
+                                        <p className="text-sm font-bold text-gray-900 mt-1">{new Date(user?.createdAt || Date.now()).getFullYear()}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Account Status</p>
+                                        <p className="text-sm font-bold text-emerald-500 mt-1">Active</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Account Status</p>
-                                    <p className="text-sm font-bold text-emerald-500 mt-1">Active</p>
-                                </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Navigation Menu */}

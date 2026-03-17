@@ -32,7 +32,7 @@ const RegisterPage = () => {
 
         // 🛡️ Industrial Input Cleaning (Phone)
         if (name === 'phone') {
-            value = value.replace(/\D/g, '').slice(0, 10);
+            // No silent cleaning for documentation
         }
 
         setFormData({ ...formData, [name]: value });
@@ -161,7 +161,7 @@ const RegisterPage = () => {
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white py-8 px-4 border border-gray-200 shadow-xl rounded-2xl sm:px-10">
+                <div className="bg-white py-6 px-4 border border-gray-200 shadow-xl rounded-2xl sm:px-10">
                     <form className="space-y-5" onSubmit={handleSubmit}>
                         {error && (
                             <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
@@ -229,12 +229,12 @@ const RegisterPage = () => {
                                 className="w-full py-3 text-base"
                                 disabled={loading}
                             >
-                                {loading ? 'Creating Account...' : 'Initialize Activation'}
+                                {loading ? 'Creating Account...' : 'Create My Account'}
                             </Button>
                         </div>
                     </form>
 
-                    <div className="mt-8 pt-6 border-t border-gray-50 text-center">
+                    <div className="mt-4 pt-4 border-t border-gray-50 text-center">
                         <Link to="/login" state={location.state} className="text-sm text-gray-500 hover:text-primary transition-colors">
                             Already have an account? <span className="text-accent font-bold">Sign In</span>
                         </Link>

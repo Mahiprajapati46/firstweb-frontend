@@ -94,12 +94,19 @@ const Checkout = () => {
                 const normalized = addrRes.data.map(normalizeAddress);
                 setAddresses(normalized);
 
-                if (previewRes.success) {
+                // Pre-select default address if exists
+                const defaultAddr = normalized.find(a => a.is_default);
+                const initialSelected = defaultAddr || (normalized.length > 0 ? normalized[0] : null);
+
+                if (initialSelected) {
+                    setSelectedAddress(initialSelected);
+                    // Initial preview with state
+                    const initialPreviewRes = await customerApi.checkoutPreview(passedCouponCode || undefined, variantIds, initialSelected.state);
+                    if (initialPreviewRes.success) {
+                        setPreview(initialPreviewRes.data);
+                    }
+                } else if (previewRes.success) {
                     setPreview(previewRes.data);
-                    // Pre-select default address if exists
-                    const defaultAddr = normalized.find(a => a.is_default);
-                    if (defaultAddr) setSelectedAddress(defaultAddr);
-                    else if (normalized.length > 0) setSelectedAddress(normalized[0]);
                 }
             }
         } catch (error) {
@@ -110,16 +117,31 @@ const Checkout = () => {
         }
     };
 
+    useEffect(() => {
+        if (selectedAddress) {
+            updatePreview();
+        }
+    }, [selectedAddress]);
+
+    const updatePreview = async () => {
+        try {
+            const response = await customerApi.checkoutPreview(couponCode || undefined, variantIds, selectedAddress?.state);
+            if (response.success) {
+                setPreview(response.data);
+            }
+        } catch (error) {
+            console.error('Update Preview Error:', error);
+        }
+    };
+
     const handleFieldChange = (name, value) => {
         let cleanedValue = value;
 
         // 🛡️ Industrial Input Cleaning
         if (name === 'phone') {
-            cleanedValue = value.replace(/\D/g, '').slice(0, 10);
+            // No silent cleaning for documentation
         } else if (name === 'pincode') {
-            cleanedValue = value.replace(/\D/g, '').slice(0, 6);
-        } else if (name === 'city' || name === 'state') {
-            cleanedValue = value.replace(/[^a-zA-Z\s]/g, '');
+            // No silent cleaning for documentation
         }
 
         setNewAddress(prev => ({ ...prev, [name]: cleanedValue }));
@@ -495,6 +517,36 @@ const Checkout = () => {
                                     <span className="text-gray-500">Delivery Charges</span>
                                     <span className="font-bold text-emerald-500 uppercase text-[11px]">Free</span>
                                 </div>
+
+                                {preview?.summary?.tax > 0 && (
+                                    <div className="pt-2 space-y-2 border-t border-gray-50 mt-2">
+                                        <div className="flex justify-between text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                                            <span>Tax Breakdown</span>
+                                        </div>
+                                        {preview.sub_orders?.some(so => so.tax_details?.cgst > 0) ? (
+                                            <>
+                                                <div className="flex justify-between text-xs text-gray-500">
+                                                    <span>CGST</span>
+                                                    <span>₹{preview.sub_orders.reduce((acc, so) => acc + (so.tax_details?.cgst || 0), 0).toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between text-xs text-gray-500">
+                                                    <span>SGST</span>
+                                                    <span>₹{preview.sub_orders.reduce((acc, so) => acc + (so.tax_details?.sgst || 0), 0).toFixed(2)}</span>
+                                                </div>
+                                            </>
+                                        ) : preview.sub_orders?.some(so => so.tax_details?.igst > 0) ? (
+                                            <div className="flex justify-between text-xs text-gray-500">
+                                                <span>IGST</span>
+                                                <span>₹{preview.sub_orders.reduce((acc, so) => acc + (so.tax_details?.igst || 0), 0).toFixed(2)}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex justify-between text-xs text-gray-500">
+                                                <span>GST</span>
+                                                <span>₹{preview.summary.tax.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {useWallet && (preview?.summary?.wallet_balance || 0) > 0 && (
                                     <div className="flex justify-between text-sm pt-4 border-t border-gray-50 text-primary">

@@ -28,6 +28,8 @@ import MerchantInventory from './pages/merchant/Inventory';
 import MerchantWallet from './pages/merchant/Wallet';
 import MerchantRequests from './pages/merchant/Requests';
 import MerchantReviews from './pages/merchant/Reviews';
+import MerchantReports from './pages/merchant/Reports';
+import MerchantSettings from './pages/merchant/Settings';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminAnalytics from './pages/admin/Analytics';
 import AdminMerchants from './pages/admin/Merchants';
@@ -45,6 +47,7 @@ import AdminSettings from './pages/admin/Settings';
 import AdminAuditLogs from './pages/admin/AuditLogs';
 import AdminTransactions from './pages/admin/Transactions';
 import AdminReviews from './pages/admin/Reviews';
+import AdminReports from './pages/admin/Reports';
 
 // Customer Pages
 import CustomerLayout from './layouts/CustomerLayout';
@@ -67,6 +70,7 @@ import CustomerHelpCenter from './pages/customer/HelpCenter';
 import CustomerReturns from './pages/customer/Returns';
 import CustomerCoupons from './pages/customer/Coupons';
 import CustomerCategories from './pages/customer/Categories';
+import MerchantStorefront from './pages/customer/MerchantStorefront';
 
 function App() {
     return (
@@ -92,6 +96,7 @@ function App() {
                     <Route path="/returns" element={<CustomerLayout><CustomerReturns /></CustomerLayout>} />
                     <Route path="/coupons" element={<CustomerLayout><CustomerCoupons /></CustomerLayout>} />
                     <Route path="/categories" element={<CustomerLayout><CustomerCategories /></CustomerLayout>} />
+                    <Route path="/store/:slug" element={<CustomerLayout><MerchantStorefront /></CustomerLayout>} />
 
                     <Route
                         path="/cart"
@@ -183,6 +188,7 @@ function App() {
                                         <Route path="settings" element={<AdminSettings />} />
                                         <Route path="audit-logs" element={<AdminAuditLogs />} />
                                         <Route path="transactions" element={<AdminTransactions />} />
+                                        <Route path="reports" element={<AdminReports />} />
                                         <Route path="reviews" element={<AdminReviews />} />
                                         <Route path="*" element={<Navigate to="dashboard" replace />} />
                                     </Routes>
@@ -207,9 +213,11 @@ function App() {
                                         <Route path="inventory" element={<MerchantInventory />} />
                                         <Route path="orders" element={<MerchantOrders />} />
                                         <Route path="orders/:id" element={<MerchantOrderDetail />} />
+                                        <Route path="reports" element={<MerchantReports />} />
                                         <Route path="wallet" element={<MerchantWallet />} />
                                         <Route path="requests" element={<MerchantRequests />} />
                                         <Route path="reviews" element={<MerchantReviews />} />
+                                        <Route path="settings" element={<MerchantSettings />} />
                                         <Route path="*" element={<Navigate to="dashboard" replace />} />
                                     </Routes>
                                 </MerchantLayout>

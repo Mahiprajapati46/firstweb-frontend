@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { commonSchemas } from "./common.schema";
 
 /**
  * Common strict email validation
@@ -104,5 +105,83 @@ export const merchantSchemas = {
                 ),
             country: z.string().default("India"),
         }),
+    }),
+
+    // Category Request Schema
+    categoryRequest: z.object({
+        name: z
+            .string()
+            .trim()
+            .min(1, "Name is required")
+            .min(3, "Name must be at least 3 characters")
+            .max(50, "Name must not exceed 50 characters")
+            .regex(/^[a-zA-Z0-9\s&-]*$/, "Only letters, numbers, spaces, &, and - are allowed"),
+        description: z
+            .string()
+            .trim()
+            .min(1, "Reason is required")
+            .min(15, "Please explain in at least 15 characters")
+            .max(500, "Reason must not exceed 500 characters"),
+        parent_category_id: z.string().nullable().optional()
+    }),
+
+    // Product Change Request Schema
+    productChangeRequest: z.object({
+        title: z
+            .string()
+            .trim()
+            .min(1, "Title is required")
+            .min(3, "Title must be at least 3 characters")
+            .max(100, "Title cannot exceed 100 characters"),
+        description: z
+            .string()
+            .trim()
+            .min(1, "Description is required")
+            .min(20, "Please provide a more detailed description (min 20 chars)")
+            .max(1000, "Description is too long (max 1000 chars)"),
+        category_ids: z
+            .array(z.string())
+            .min(1, "At least one category is required"),
+        justification: z
+            .string()
+            .trim()
+            .min(1, "Justification is required")
+            .min(15, "Please explain why these changes are necessary (min 15 chars)")
+            .max(500, "Justification must not exceed 500 characters"),
+    }),
+
+    // Variant Change Request Schema (SKU only usually)
+    variantChangeRequest: z.object({
+        sku: z
+            .string()
+            .trim()
+            .min(1, "SKU is required")
+            .min(3, "SKU is too short")
+            .max(30, "SKU is too long")
+            .regex(/^[A-Z0-9-]*$/, "Only uppercase letters, numbers, and hyphens are allowed"),
+        justification: z
+            .string()
+            .trim()
+            .min(1, "Justification is required")
+            .min(15, "Please explain why this SKU change is necessary (min 15 chars)")
+            .max(500, "Justification must not exceed 500 characters"),
+    }),
+
+    // Comprehensive Withdrawal Request Schema
+    withdrawalRequest: z.object({
+        amount: z
+            .number({ invalid_type_error: "Amount must be a number" })
+            .min(500, "Minimum withdrawal amount is ₹500")
+            .max(1000000, "Maximum withdrawal amount per transaction is ₹1,000,000"),
+        method: z.enum(["BANK_TRANSFER", "UPI"]),
+        bank_details: commonSchemas.bankDetails.optional(),
+        upi_details: commonSchemas.upiDetails.optional(),
+    }).refine((data) => {
+        if (data.method === "BANK_TRANSFER") return !!data.bank_details;
+        if (data.method === "UPI") return !!data.upi_details;
+        return false;
+    }, {
+        message: "Please provide the corresponding details for the selected payout method",
+        path: ["method"],
     }),
 };
